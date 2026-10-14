@@ -1,7 +1,8 @@
 import { usePage } from '@inertiajs/react';
-import { Building2, Flower2, LayoutGrid, MapPin } from 'lucide-react';
+import { Building2, Flower2, LayoutGrid, MapPin, Sprout } from 'lucide-react';
 import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
+import myVarieties from '@/routes/my-varieties';
 import type { NavItem } from '@/types';
 
 /**
@@ -27,5 +28,17 @@ export function useMainNav(): NavItem[] {
         ];
     }
 
-    return [{ title: 'Inicio', href: dashboard(), icon: LayoutGrid }];
+    const items: NavItem[] = [
+        { title: 'Inicio', href: dashboard(), icon: LayoutGrid },
+    ];
+
+    if (auth.company?.type === 'grower') {
+        items.push({
+            title: 'Mis variedades',
+            href: myVarieties.edit(),
+            icon: Sprout,
+        });
+    }
+
+    return items;
 }

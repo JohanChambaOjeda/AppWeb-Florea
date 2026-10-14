@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountPendingController;
+use App\Http\Controllers\MyVarietiesController;
 use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -24,11 +25,17 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'company.verified'])->group(function () {
-    Route::get('dashboard', function (Request $request) {
-        return $request->user()->isAdmin()
-            ? to_route('admin.dashboard')
-            : inertia('dashboard');
-    })->name('dashboard');
+    Route::get('my-varieties', [MyVarietiesController::class, 'edit'])->name('my-varieties.edit');
+    Route::put('my-varieties', [MyVarietiesController::class, 'update'])->name('my-varieties.update');
+
+    // Rutas de la app: un productor sin variedades pasa primero por "Mis variedades".
+    Route::middleware('grower.onboarded')->group(function () {
+        Route::get('dashboard', function (Request $request) {
+            return $request->user()->isAdmin()
+                ? to_route('admin.dashboard')
+                : inertia('dashboard');
+        })->name('dashboard');
+    });
 });
 
 require __DIR__.'/settings.php';
