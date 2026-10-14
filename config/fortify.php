@@ -45,7 +45,7 @@ return [
     |
     */
 
-    'username' => 'email',
+    'username' => 'phone',
 
     'email' => 'email',
 
@@ -60,7 +60,7 @@ return [
     |
     */
 
-    'lowercase_usernames' => true,
+    'lowercase_usernames' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -162,16 +162,15 @@ return [
 
     'features' => [
         Features::registration(),
-        Features::resetPasswords(),
-        Features::emailVerification(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
-        ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        // Florea: ingreso solo con celular + contraseña. Sin recuperación por
+        // email, verificación de email, 2FA ni passkeys en el MVP.
+        // Features::twoFactorAuthentication([
+        //     'confirm' => true,
+        //     'confirmPassword' => true,
+        // ]),
+        // Features::passkeys([
+        //     'confirmPassword' => true,
+        // ]),
     ],
 
 ];

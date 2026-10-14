@@ -7,22 +7,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
+import { home } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-import PasskeyVerify from '@/components/passkey-verify';
 
 type Props = {
     status?: string;
-    canResetPassword: boolean;
 };
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({ status }: Props) {
     return (
         <>
-            <Head title="Log in" />
-
-            <PasskeyVerify />
+            <Head title="Ingresar" />
 
             <Form
                 {...store.form()}
@@ -33,32 +29,32 @@ export default function Login({ status, canResetPassword }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="phone">Celular</Label>
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
+                                    id="phone"
+                                    type="tel"
+                                    name="phone"
+                                    inputMode="tel"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
+                                    autoComplete="tel-national"
+                                    placeholder="0991234567"
+                                    className="h-12 text-lg"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError message={errors.phone} />
                             </div>
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
+                                    <Label htmlFor="password">Contraseña</Label>
+                                    <TextLink
+                                        href={request()}
+                                        className="ml-auto text-sm"
+                                        tabIndex={5}
+                                    >
+                                        Olvidé mi contraseña
+                                    </TextLink>
                                 </div>
                                 <PasswordInput
                                     id="password"
@@ -66,7 +62,8 @@ export default function Login({ status, canResetPassword }: Props) {
                                     required
                                     tabIndex={2}
                                     autoComplete="current-password"
-                                    placeholder="Password"
+                                    placeholder="Tu contraseña"
+                                    className="h-12 text-lg"
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -76,26 +73,28 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
+                                    defaultChecked
                                 />
-                                <Label htmlFor="remember">Remember me</Label>
+                                <Label htmlFor="remember">Recordarme</Label>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                size="lg"
+                                className="mt-2 h-12 w-full text-base"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
-                                Log in
+                                Ingresar
                             </Button>
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
+                            ¿No tienes cuenta?{' '}
+                            <TextLink href={home()} tabIndex={5}>
+                                Regístrate
                             </TextLink>
                         </div>
                     </>
@@ -112,6 +111,6 @@ export default function Login({ status, canResetPassword }: Props) {
 }
 
 Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    title: 'Ingresa a Florea',
+    description: 'Con tu número de celular y tu contraseña',
 };

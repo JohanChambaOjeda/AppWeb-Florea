@@ -1,92 +1,73 @@
 <?php
 
-namespace Tests\Feature\Auth;
-
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
-use Laravel\Fortify\Features;
-use Tests\TestCase;
 
-class AuthenticationTest extends TestCase
-{
-    use RefreshDatabase;
+test('la pantalla de ingreso se muestra', function () {
+    $this->get(route('login'))->assertOk();
+});
 
-    public function test_login_screen_can_be_rendered()
-    {
-        $response = $this->get(route('login'));
+test('ingresa con el celular en cualquier formato', function (string $phone) {
+    $user = User::factory()->create(['phone' => '+593991234567']);
 
-        $response->assertOk();
-    }
+    $this->post(route('login.store'), [
+        'phone' => $phone,
+        'password' => 'password',
+    ])->assertRedirect(route('dashboard', absolute: false));
 
-    public function test_users_can_authenticate_using_the_login_screen()
-    {
-        $user = User::factory()->create();
+    $this->assertAuthenticatedAs($user);
+})->with([
+    'con 0' => '0991234567',
+    'sin 0' => '991234567',
+    'E.164' => '+593991234567',
+    'con espacios' => '099 123 4567',
+]);
 
-        $response = $this->post(route('login.store'), [
-            'email' => $user->email,
-            'password' => 'password',
-        ]);
+test('no ingresa con una contraseña incorrecta', function () {
+    User::factory()->create(['phone' => '+593991234567']);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
-    }
+    $this->post(route('login.store'), [
+        'phone' => '0991234567',
+        'password' => 'wrong-password',
+    ])->assertSessionHasErrors('phone');
 
-    public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
-    {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+    $this->assertGuest();
+});
 
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
+test('no ingresa con un celular que no existe', function () {
+    $this->post(route('login.store'), [
+        'phone' => '0999999999',
+        'password' => 'password',
+    ])->assertSessionHasErrors('phone');
 
-        $user = User::factory()->withTwoFactor()->create();
+    $this->assertGuest();
+});
 
-        $response = $this->post(route('login'), [
-            'email' => $user->email,
-            'password' => 'password',
-        ]);
+test('cierra sesión', function () {
+    $user = User::factory()->create();
 
-        $response->assertRedirect(route('two-factor.login'));
-        $response->assertSessionHas('login.id', $user->id);
-        $this->assertGuest();
-    }
+    $this->actingAs($user)->post(route('logout'))->assertRedirect(route('home'));
 
-    public function test_users_can_not_authenticate_with_invalid_password()
-    {
-        $user = User::factory()->create();
+    $this->assertGuest();
+});
 
-        $this->post(route('login.store'), [
-            'email' => $user->email,
-            'password' => 'wrong-password',
-        ]);
+test('limita los intentos de ingreso por celular, sin importar el formato', function () {
+    User::factory()->create(['phone' => '+593991234567']);
 
-        $this->assertGuest();
-    }
+    RateLimiter::increment(md5('login'.'+593991234567|127.0.0.1'), amount: 5);
 
-    public function test_users_can_logout()
-    {
-        $user = User::factory()->create();
+    $this->post(route('login.store'), [
+        'phone' => '0991234567',
+        'password' => 'wrong-password',
+    ])->assertTooManyRequests();
+});
 
-        $response = $this->actingAs($user)->post(route('logout'));
+test('olvidé mi contraseña muestra el enlace de WhatsApp del admin', function () {
+    config(['florea.admin_phone' => '0991112233']);
 
-        $response->assertRedirect(route('home'));
-
-        $this->assertGuest();
-    }
-
-    public function test_users_are_rate_limited()
-    {
-        $user = User::factory()->create();
-
-        RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
-
-        $response = $this->post(route('login.store'), [
-            'email' => $user->email,
-            'password' => 'wrong-password',
-        ]);
-
-        $response->assertTooManyRequests();
-    }
-}
+    $this->get(route('password.request'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('auth/forgot-password')
+            ->where('whatsappUrl', fn (string $url) => str_starts_with($url, 'https://wa.me/593991112233?text=')));
+});

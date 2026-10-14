@@ -3,16 +3,18 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
-use App\Actions\Fortify\ResetUserPassword;
+use App\Enums\CompanyType;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Zone;
+use App\Support\PhoneNumber;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -21,7 +23,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(FortifyLoginRequest::class, LoginRequest::class);
     }
 
     /**
@@ -39,7 +41,6 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureActions(): void
     {
-        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
     }
 
@@ -49,25 +50,13 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
-            'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
-            'email' => $request->email,
-            'token' => $request->route('token'),
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        ]));
-
-        Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('auth/forgot-password', [
-            'status' => $request->session()->get('status'),
-        ]));
-
-        Fortify::verifyEmailView(fn (Request $request) => Inertia::render('auth/verify-email', [
-            'status' => $request->session()->get('status'),
-        ]));
-
-        Fortify::registerView(fn () => Inertia::render('auth/register', [
+        Fortify::registerView(fn (Request $request) => Inertia::render('auth/register', [
+            'type' => CompanyType::tryFrom((string) $request->query('type'))?->value ?? CompanyType::Postharvest->value,
+            'companyTypes' => CompanyType::options(),
+            'zones' => Zone::active()->orderBy('name')->get(['id', 'name']),
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ]));
 
@@ -86,9 +75,9 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $phone = PhoneNumber::normalize($request->input('phone')) ?? (string) $request->input('phone');
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute(5)->by($phone.'|'.$request->ip());
         });
 
         RateLimiter::for('passkeys', function (Request $request) {

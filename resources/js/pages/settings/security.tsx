@@ -7,32 +7,26 @@ import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
-import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
-import ManagePasskeys from '@/components/manage-passkeys';
-import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
-import ManageTwoFactor from '@/components/manage-two-factor';
 
-// oxfmt-ignore
 type Props = {
     passwordRules: string;
-} & ManagePasskeysProps &
-    ManageTwoFactorProps;
+};
 
-export default function Security(props: Props) {
+export default function Security({ passwordRules }: Props) {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
     return (
         <>
-            <Head title="Security settings" />
+            <Head title="Contraseña" />
 
-            <h1 className="sr-only">Security settings</h1>
+            <h1 className="sr-only">Contraseña</h1>
 
             <div className="space-y-6">
                 <Heading
                     variant="small"
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
+                    title="Cambiar contraseña"
+                    description="Usa al menos 8 caracteres"
                 />
 
                 <Form
@@ -61,32 +55,34 @@ export default function Security(props: Props) {
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="current_password">
-                                    Current password
+                                    Contraseña actual
                                 </Label>
 
                                 <PasswordInput
                                     id="current_password"
                                     ref={currentPasswordInput}
                                     name="current_password"
-                                    className="mt-1 block w-full"
+                                    className="mt-1 block h-12 w-full text-base"
                                     autoComplete="current-password"
-                                    placeholder="Current password"
+                                    placeholder="Contraseña actual"
                                 />
 
                                 <InputError message={errors.current_password} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">New password</Label>
+                                <Label htmlFor="password">
+                                    Contraseña nueva
+                                </Label>
 
                                 <PasswordInput
                                     id="password"
                                     ref={passwordInput}
                                     name="password"
-                                    className="mt-1 block w-full"
+                                    className="mt-1 block h-12 w-full text-base"
                                     autoComplete="new-password"
-                                    placeholder="New password"
-                                    passwordrules={props.passwordRules}
+                                    placeholder="Contraseña nueva"
+                                    passwordrules={passwordRules}
                                 />
 
                                 <InputError message={errors.password} />
@@ -94,16 +90,16 @@ export default function Security(props: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm password
+                                    Repite la contraseña nueva
                                 </Label>
 
                                 <PasswordInput
                                     id="password_confirmation"
                                     name="password_confirmation"
-                                    className="mt-1 block w-full"
+                                    className="mt-1 block h-12 w-full text-base"
                                     autoComplete="new-password"
-                                    placeholder="Confirm password"
-                                    passwordrules={props.passwordRules}
+                                    placeholder="Repite la contraseña nueva"
+                                    passwordrules={passwordRules}
                                 />
 
                                 <InputError
@@ -113,27 +109,17 @@ export default function Security(props: Props) {
 
                             <div className="flex items-center gap-4">
                                 <Button
+                                    size="lg"
                                     disabled={processing}
                                     data-test="update-password-button"
                                 >
-                                    Save
+                                    Guardar
                                 </Button>
                             </div>
                         </>
                     )}
                 </Form>
             </div>
-
-            <ManageTwoFactor
-                canManageTwoFactor={props.canManageTwoFactor}
-                requiresConfirmation={props.requiresConfirmation}
-                twoFactorEnabled={props.twoFactorEnabled}
-            />
-
-            <ManagePasskeys
-                canManagePasskeys={props.canManagePasskeys}
-                passkeys={props.passkeys}
-            />
         </>
     );
 }
@@ -141,7 +127,7 @@ export default function Security(props: Props) {
 Security.layout = {
     breadcrumbs: [
         {
-            title: 'Security settings',
+            title: 'Contraseña',
             href: edit(),
         },
     ],

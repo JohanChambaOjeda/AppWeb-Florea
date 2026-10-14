@@ -27,6 +27,7 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'company_id' => Company::factory()->verified(),
             'name' => fake()->name(),
             'phone' => '+5939'.fake()->unique()->numerify('########'),
             'email' => fake()->unique()->safeEmail(),
@@ -52,13 +53,12 @@ class UserFactory extends Factory
     }
 
     /**
-     * Dueño de una empresa (por defecto, verificada).
+     * Dueño de una empresa que todavía no ha sido verificada.
      */
-    public function forCompany(?Company $company = null): static
+    public function unverifiedCompany(): static
     {
         return $this->state(fn (array $attributes) => [
-            'company_id' => $company?->id ?? Company::factory()->verified(),
-            'role' => UserRole::Owner,
+            'company_id' => Company::factory(),
         ]);
     }
 

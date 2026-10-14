@@ -1,27 +1,42 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-class DashboardTest extends TestCase
-{
-    use RefreshDatabase;
+test('los visitantes van a la pantalla de ingreso', function () {
+    $this->get(route('dashboard'))->assertRedirect(route('login'));
+});
 
-    public function test_guests_are_redirected_to_the_login_page()
-    {
-        $response = $this->get(route('dashboard'));
-        $response->assertRedirect(route('login'));
-    }
+test('un usuario de empresa verificada entra a la app', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('dashboard'))
+        ->assertOk();
+});
 
-    public function test_authenticated_users_can_visit_the_dashboard()
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user);
+test('un usuario de empresa no verificada va a "cuenta en revisión"', function (string $route) {
+    $user = User::factory()->unverifiedCompany()->create();
 
-        $response = $this->get(route('dashboard'));
-        $response->assertOk();
-    }
-}
+    $this->actingAs($user)->get(route($route))->assertRedirect(route('account.pending'));
+})->with(['dashboard', 'profile.edit', 'security.edit']);
+
+test('la pantalla de cuenta en revisión se muestra al no verificado', function () {
+    $user = User::factory()->unverifiedCompany()->create();
+
+    $this->actingAs($user)
+        ->get(route('account.pending'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('account/pending')
+            ->where('companyName', $user->company->name));
+});
+
+test('un usuario verificado no se queda en "cuenta en revisión"', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('account.pending'))
+        ->assertRedirect(route('dashboard'));
+});
+
+test('el admin no pasa por la verificación de empresa', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('dashboard'))
+        ->assertOk();
+});
