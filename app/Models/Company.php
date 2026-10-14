@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'type', 'name', 'tax_id', 'zone_id', 'address_reference', 'id_document_path',
-    'verified_at', 'verified_by', 'plan', 'plan_until',
+    'verified_at', 'verified_by', 'rejection_reason', 'plan', 'plan_until',
 ])]
 class Company extends Model
 {
@@ -51,6 +51,29 @@ class Company extends Model
     public function isVerified(): bool
     {
         return $this->verified_at !== null;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->trashed();
+    }
+
+    public function verify(User $admin): void
+    {
+        $this->forceFill([
+            'verified_at' => now(),
+            'verified_by' => $admin->id,
+            'rejection_reason' => null,
+        ])->save();
+    }
+
+    /**
+     * Rechazar = soft delete con motivo opcional. Sus usuarios ven el motivo al ingresar.
+     */
+    public function reject(?string $reason = null): void
+    {
+        $this->forceFill(['rejection_reason' => $reason])->save();
+        $this->delete();
     }
 
     public function isGrower(): bool

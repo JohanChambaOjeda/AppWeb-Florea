@@ -16,7 +16,7 @@ class EnsureCompanyIsVerified
     {
         $user = $request->user();
 
-        if ($user && ! $user->isAdmin() && ! $user->company?->isVerified()) {
+        if ($user && ! $user->isAdmin() && ! $user->hasVerifiedCompany()) {
             return redirect()->route('account.pending');
         }
 

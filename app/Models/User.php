@@ -61,9 +61,22 @@ class User extends Authenticatable implements PasskeyUser
         return $this->role === UserRole::Admin;
     }
 
+    /**
+     * Incluye empresas rechazadas (soft delete) para poder mostrarles el motivo.
+     */
     public function company(): BelongsTo
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(Company::class)->withTrashed();
+    }
+
+    /**
+     * Puede usar la app: admin, o usuario de una empresa verificada y no rechazada.
+     */
+    public function hasVerifiedCompany(): bool
+    {
+        return $this->company !== null
+            && ! $this->company->isRejected()
+            && $this->company->isVerified();
     }
 
     public function listings(): HasMany

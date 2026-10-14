@@ -1,5 +1,4 @@
 import { Link } from '@inertiajs/react';
-import { LayoutGrid } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -13,17 +12,11 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Inicio',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+import { useMainNav } from '@/hooks/use-main-nav';
 
 export function AppSidebar() {
+    const mainNavItems = useMainNav();
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

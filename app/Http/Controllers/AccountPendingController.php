@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,12 +14,17 @@ class AccountPendingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isAdmin() || $user->company?->isVerified()) {
+        if ($user->isAdmin() || $user->hasVerifiedCompany()) {
             return to_route('dashboard');
         }
 
+        $adminPhone = PhoneNumber::normalize(config('florea.admin_phone'));
+
         return Inertia::render('account/pending', [
             'companyName' => $user->company?->name,
+            'rejected' => (bool) $user->company?->isRejected(),
+            'rejectionReason' => $user->company?->rejection_reason,
+            'whatsappUrl' => $adminPhone ? 'https://wa.me/'.PhoneNumber::whatsapp($adminPhone) : null,
         ]);
     }
 }

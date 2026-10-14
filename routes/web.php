@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountPendingController;
 use App\Support\PhoneNumber;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -23,7 +24,12 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'company.verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', function (Request $request) {
+        return $request->user()->isAdmin()
+            ? to_route('admin.dashboard')
+            : inertia('dashboard');
+    })->name('dashboard');
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/admin.php';

@@ -46,7 +46,7 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->company->id,
                     'name' => $user->company->name,
                     'type' => $user->company->type->value,
-                    'verified' => $user->company->isVerified(),
+                    'verified' => $user->hasVerifiedCompany(),
                 ] : null,
                 'isAdmin' => (bool) $user?->isAdmin(),
             ],

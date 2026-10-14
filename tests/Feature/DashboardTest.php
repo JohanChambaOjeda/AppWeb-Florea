@@ -37,6 +37,6 @@ test('un usuario verificado no se queda en "cuenta en revisión"', function () {
 
 test('el admin no pasa por la verificación de empresa', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->get(route('dashboard'))
+        ->get(route('profile.edit'))
         ->assertOk();
 });
