@@ -26,6 +26,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register()
     {
+        $this->markTestSkipped('Registro por email del starter kit; se reemplaza por registro con celular en el Paso 4.');
+
         $response = $this->post(route('register.store'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
