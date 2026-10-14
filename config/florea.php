@@ -20,4 +20,18 @@ return [
         'max' => 150,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Administrador
+    |--------------------------------------------------------------------------
+    |
+    | Lo usa el AdminSeeder para crear la cuenta admin, y el enlace de
+    | WhatsApp de "Olvidé mi contraseña".
+    |
+    */
+
+    'admin_phone' => env('ADMIN_PHONE'),
+
+    'admin_password' => env('ADMIN_PASSWORD'),
+
 ];
