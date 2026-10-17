@@ -15,8 +15,10 @@ class DealFactory extends Factory
     {
         return [
             'offer_id' => Offer::factory(),
-            'buyer_company_id' => fn (array $attributes) => Offer::find($attributes['offer_id'])->listing->company_id,
-            'seller_company_id' => fn (array $attributes) => Offer::find($attributes['offer_id'])->company_id,
+            // Quien compra y quien vende salen de la oferta: en un "Busco" el
+            // que oferta vende, así que la publicación pone al comprador.
+            'buyer_company_id' => fn (array $attributes) => Offer::findOrFail((int) $attributes['offer_id'])->listing->company_id,
+            'seller_company_id' => fn (array $attributes) => Offer::findOrFail((int) $attributes['offer_id'])->company_id,
             'closed_at' => now(),
             'delivered' => null,
             'rejected_pct' => null,

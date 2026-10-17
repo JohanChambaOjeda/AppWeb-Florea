@@ -9,6 +9,7 @@ use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +17,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property CompanyType $type
+ * @property string $name
+ * @property string $tax_id
+ * @property int $zone_id
+ * @property string|null $address_reference
+ * @property string|null $id_document_path
+ * @property Carbon|null $verified_at
+ * @property int|null $verified_by
+ * @property string|null $rejection_reason
+ * @property Plan $plan
+ * @property Carbon|null $plan_until
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Zone $zone
+ * @property-read User|null $owner
+ * @property-read Collection<int, User> $users
+ * @property-read Collection<int, Variety> $varieties
+ * @property-read Collection<int, CompanyVariety> $companyVarieties
+ */
 #[Fillable([
     'type', 'name', 'tax_id', 'zone_id', 'address_reference', 'id_document_path',
     'verified_at', 'verified_by', 'rejection_reason', 'plan', 'plan_until',
@@ -36,12 +60,18 @@ class Company extends Model
         ];
     }
 
+    /**
+     * @param  Builder<static>  $query
+     */
     #[Scope]
     protected function verified(Builder $query): void
     {
         $query->whereNotNull('verified_at');
     }
 
+    /**
+     * @param  Builder<static>  $query
+     */
     #[Scope]
     protected function pendingVerification(Builder $query): void
     {
@@ -86,26 +116,41 @@ class Company extends Model
         return $this->type === CompanyType::Postharvest;
     }
 
+    /**
+     * @return BelongsTo<Zone, $this>
+     */
     public function zone(): BelongsTo
     {
         return $this->belongsTo(Zone::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
 
+    /**
+     * @return HasMany<User, $this>
+     */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return HasOne<User, $this>
+     */
     public function owner(): HasOne
     {
         return $this->hasOne(User::class)->where('role', UserRole::Owner)->oldestOfMany();
     }
 
+    /**
+     * @return BelongsToMany<Variety, $this, CompanyVariety>
+     */
     public function varieties(): BelongsToMany
     {
         return $this->belongsToMany(Variety::class, 'company_varieties')
@@ -114,31 +159,49 @@ class Company extends Model
             ->withTimestamps();
     }
 
+    /**
+     * @return HasMany<CompanyVariety, $this>
+     */
     public function companyVarieties(): HasMany
     {
         return $this->hasMany(CompanyVariety::class);
     }
 
+    /**
+     * @return HasMany<Listing, $this>
+     */
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);
     }
 
+    /**
+     * @return HasMany<Offer, $this>
+     */
     public function offers(): HasMany
     {
         return $this->hasMany(Offer::class);
     }
 
+    /**
+     * @return HasMany<Deal, $this>
+     */
     public function dealsAsBuyer(): HasMany
     {
         return $this->hasMany(Deal::class, 'buyer_company_id');
     }
 
+    /**
+     * @return HasMany<Deal, $this>
+     */
     public function dealsAsSeller(): HasMany
     {
         return $this->hasMany(Deal::class, 'seller_company_id');
     }
 
+    /**
+     * @return HasMany<Rating, $this>
+     */
     public function ratingsReceived(): HasMany
     {
         return $this->hasMany(Rating::class, 'to_company_id');

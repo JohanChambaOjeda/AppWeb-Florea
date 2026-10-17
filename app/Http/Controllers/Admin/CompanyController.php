@@ -46,7 +46,7 @@ class CompanyController extends Controller
                 'type' => $company->type->value,
                 'typeLabel' => $company->type->label(),
                 'taxId' => $company->tax_id,
-                'zone' => $company->zone?->name,
+                'zone' => $company->zone->name,
                 'addressReference' => $company->address_reference,
                 'ownerName' => $company->owner?->name,
                 'ownerPhone' => $company->owner ? PhoneNumber::display($company->owner->phone) : null,

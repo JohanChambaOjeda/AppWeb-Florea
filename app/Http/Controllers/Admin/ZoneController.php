@@ -65,16 +65,18 @@ class ZoneController extends Controller
      */
     private function validated(Request $request, ?Zone $zone = null): array
     {
-        $canton = $request->input('canton') ?: 'Pedro Moncayo';
+        $canton = $request->string('canton')->toString() ?: 'Pedro Moncayo';
+
+        $request->validate([
+            'name' => [
+                'required', 'string', 'max:100',
+                Rule::unique('zones')->where('canton', $canton)->ignore($zone),
+            ],
+            'canton' => ['nullable', 'string', 'max:100'],
+        ], attributes: ['name' => 'nombre', 'canton' => 'cantón']);
 
         return [
-            ...$request->validate([
-                'name' => [
-                    'required', 'string', 'max:100',
-                    Rule::unique('zones')->where('canton', $canton)->ignore($zone),
-                ],
-                'canton' => ['nullable', 'string', 'max:100'],
-            ], attributes: ['name' => 'nombre', 'canton' => 'cantón']),
+            'name' => $request->string('name')->toString(),
             'canton' => $canton,
         ];
     }

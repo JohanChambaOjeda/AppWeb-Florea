@@ -54,7 +54,7 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
 
         Fortify::registerView(fn (Request $request) => Inertia::render('auth/register', [
-            'type' => CompanyType::tryFrom((string) $request->query('type'))?->value ?? CompanyType::Postharvest->value,
+            'type' => CompanyType::tryFrom((string) $request->query('type'))->value ?? CompanyType::Postharvest->value,
             'companyTypes' => CompanyType::options(),
             'zones' => Zone::active()->orderBy('name')->get(['id', 'name']),
             'passwordRules' => Password::defaults()->toPasswordRulesString(),

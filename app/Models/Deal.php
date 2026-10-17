@@ -9,7 +9,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $offer_id
+ * @property int $buyer_company_id
+ * @property int $seller_company_id
+ * @property Carbon $closed_at
+ * @property DeliveryResult|null $delivered
+ * @property string|null $rejected_pct
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property-read Offer $offer
+ * @property-read Company $buyerCompany
+ * @property-read Company $sellerCompany
+ */
 #[Fillable([
     'offer_id', 'buyer_company_id', 'seller_company_id', 'closed_at', 'delivered', 'rejected_pct',
 ])]
@@ -42,21 +57,33 @@ class Deal extends Model
             ->exists();
     }
 
+    /**
+     * @return BelongsTo<Offer, $this>
+     */
     public function offer(): BelongsTo
     {
         return $this->belongsTo(Offer::class);
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function buyerCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'buyer_company_id');
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function sellerCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'seller_company_id');
     }
 
+    /**
+     * @return HasMany<Rating, $this>
+     */
     public function ratings(): HasMany
     {
         return $this->hasMany(Rating::class);

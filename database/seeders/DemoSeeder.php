@@ -25,7 +25,7 @@ class DemoSeeder extends Seeder
     public function run(): void
     {
         if (! app()->isLocal()) {
-            $this->command?->warn('DemoSeeder solo corre en local. Omitido.');
+            $this->command->warn('DemoSeeder solo corre en local. Omitido.');
 
             return;
         }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateMyVarietiesRequest;
 use App\Models\Company;
 use App\Models\Variety;
 use Illuminate\Http\RedirectResponse;
@@ -33,41 +34,23 @@ class MyVarietiesController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateMyVarietiesRequest $request): RedirectResponse
     {
         $company = $this->growerCompany($request);
-        $min = config('florea.custom_length.min');
-        $max = config('florea.custom_length.max');
-
-        $data = $request->validate([
-            'varieties' => ['required', 'array', 'min:1'],
-            'varieties.*.variety_id' => ['required', 'integer', 'distinct', 'exists:varieties,id,is_active,1'],
-            'varieties.*.lengths' => ['required', 'array', 'min:1'],
-            'varieties.*.lengths.*' => ['required', 'integer', "between:{$min},{$max}", 'distinct'],
-        ], [
-            'varieties.required' => 'Marca al menos una variedad.',
-            'varieties.min' => 'Marca al menos una variedad.',
-            'varieties.*.lengths.required' => 'Elige al menos un largo.',
-            'varieties.*.lengths.min' => 'Elige al menos un largo.',
-            'varieties.*.lengths.*.between' => "El largo debe estar entre {$min} y {$max} cm.",
-            'varieties.*.variety_id.exists' => 'Esa variedad ya no está disponible.',
-        ]);
+        $chosen = $request->chosenVarieties();
 
         $wasOnboarding = ! $company->companyVarieties()->exists();
 
-        DB::transaction(function () use ($company, $data) {
-            $chosen = collect($data['varieties'])->mapWithKeys(fn ($item) => [
-                $item['variety_id'] => ['lengths' => collect($item['lengths'])->map(fn ($l) => (int) $l)->unique()->sort()->values()->all()],
-            ]);
-
+        DB::transaction(function () use ($company, $chosen) {
             // Solo se reemplazan las variedades activas: si el admin desactivó una
             // que el productor ya tenía, no se la borramos en silencio.
-            $keepInactive = $company->varieties()
-                ->where('varieties.is_active', false)
-                ->get()
-                ->mapWithKeys(fn (Variety $v) => [$v->id => ['lengths' => $v->pivot->lengths]]);
+            $keepInactive = [];
 
-            $company->varieties()->sync($chosen->all() + $keepInactive->all());
+            foreach ($company->varieties()->where('varieties.is_active', false)->get() as $variety) {
+                $keepInactive[$variety->id] = ['lengths' => $variety->pivot->lengths];
+            }
+
+            $company->varieties()->sync($chosen + $keepInactive);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Tus variedades quedaron guardadas.']);
