@@ -9,7 +9,12 @@ use App\Models\Zone;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Por defecto la empresa queda sin verificar, como recién registrada.
+ * Por defecto: poscosecha sin verificar, como recién registrada.
+ *
+ * El tipo es fijo a propósito. Si fuera al azar, cualquier test que entre al
+ * dashboard sería una moneda al aire: un productor sin variedades lo manda el
+ * middleware grower.onboarded a "Mis variedades". Quien necesite un productor
+ * usa ->grower().
  *
  * @extends Factory<Company>
  */
@@ -18,8 +23,8 @@ class CompanyFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => fake()->randomElement(CompanyType::cases()),
-            'name' => 'Finca '.fake()->unique()->lastName(),
+            'type' => CompanyType::Postharvest,
+            'name' => 'Poscosecha '.fake()->unique()->lastName(),
             'tax_id' => fake()->numerify('17########001'),
             'zone_id' => Zone::factory(),
             'address_reference' => null,
@@ -38,7 +43,10 @@ class CompanyFactory extends Factory
 
     public function grower(): static
     {
-        return $this->state(fn () => ['type' => CompanyType::Grower]);
+        return $this->state(fn () => [
+            'type' => CompanyType::Grower,
+            'name' => 'Finca '.fake()->unique()->lastName(),
+        ]);
     }
 
     public function verified(): static

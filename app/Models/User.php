@@ -32,6 +32,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Company|null $company
  */
 #[Fillable(['company_id', 'name', 'phone', 'email', 'password', 'role', 'last_seen_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -63,6 +64,8 @@ class User extends Authenticatable implements PasskeyUser
 
     /**
      * Incluye empresas rechazadas (soft delete) para poder mostrarles el motivo.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -79,11 +82,17 @@ class User extends Authenticatable implements PasskeyUser
             && $this->company->isVerified();
     }
 
+    /**
+     * @return HasMany<Listing, $this>
+     */
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);
     }
 
+    /**
+     * @return HasMany<Offer, $this>
+     */
     public function offers(): HasMany
     {
         return $this->hasMany(Offer::class);

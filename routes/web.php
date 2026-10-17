@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountPendingController;
+use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MyVarietiesController;
 use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
@@ -35,6 +36,9 @@ Route::middleware(['auth', 'company.verified'])->group(function () {
                 ? to_route('admin.dashboard')
                 : inertia('dashboard');
         })->name('dashboard');
+
+        Route::get('listings/create', [ListingController::class, 'create'])->name('listings.create');
+        Route::post('listings', [ListingController::class, 'store'])->name('listings.store');
     });
 });
 

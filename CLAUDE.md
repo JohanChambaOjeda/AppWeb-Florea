@@ -34,8 +34,8 @@ Cliente que paga: la vendedora de la poscosecha (suscripción mensual a partir d
 ## Reglas de negocio clave
 
 1. Solo empresas verificadas (`verified_at` no nulo) pueden publicar u ofertar. Las no verificadas ven una pantalla de "cuenta en revisión".
-2. El teléfono de otra empresa solo se muestra si existe un trato (`deal`) entre ambas.
-3. Una oferta de un productor no se puede enviar sin foto.
+2. El teléfono de otra empresa solo se muestra en la oferta aceptada que creó el trato (`deal`). En ninguna otra pantalla, ni en las props de Inertia.
+3. Quien oferta en un "Busco" es el vendedor: foto del día (1 a 3) y precio por tallo obligatorios. Quien oferta en un "Disponible" es el comprador: sin foto y con precio opcional. Depende del tipo de publicación, no de si la empresa es productor o poscosecha.
 4. Ingreso con número de celular de Ecuador + contraseña. El celular se guarda normalizado en formato E.164 (+5939XXXXXXXX).
 5. La verificación es manual desde el panel admin. Más adelante se pedirá foto de la cédula (la columna ya existe).
 

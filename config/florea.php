@@ -22,6 +22,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Publicaciones
+    |--------------------------------------------------------------------------
+    |
+    | Horas de vida de cada tipo desde que se crea. Un "Busco" dura dos días
+    | porque el pedido se arma con calma; un "Disponible" dura uno, porque la
+    | flor ya cortada no espera.
+    |
+    | needed_by_days: hasta cuántos días adelante se puede pedir la flor.
+    | notes_max: largo máximo de la nota libre.
+    |
+    */
+
+    'expiry_hours' => [
+        'want' => 48,
+        'have' => 24,
+    ],
+
+    'needed_by_days' => 30,
+
+    'notes_max' => 300,
+
+    /*
+    |--------------------------------------------------------------------------
     | Administrador
     |--------------------------------------------------------------------------
     |
