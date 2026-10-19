@@ -1,10 +1,10 @@
 <?php
 
 use App\Http\Controllers\AccountPendingController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MyVarietiesController;
 use App\Support\PhoneNumber;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -31,14 +31,11 @@ Route::middleware(['auth', 'company.verified'])->group(function () {
 
     // Rutas de la app: un productor sin variedades pasa primero por "Mis variedades".
     Route::middleware('grower.onboarded')->group(function () {
-        Route::get('dashboard', function (Request $request) {
-            return $request->user()->isAdmin()
-                ? to_route('admin.dashboard')
-                : inertia('dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
 
         Route::get('listings/create', [ListingController::class, 'create'])->name('listings.create');
         Route::post('listings', [ListingController::class, 'store'])->name('listings.store');
+        Route::get('listings/{listing}', [ListingController::class, 'show'])->name('listings.show');
     });
 });
 

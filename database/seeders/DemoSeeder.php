@@ -80,25 +80,26 @@ class DemoSeeder extends Seeder
                 ['Paloma', [60], 2, Unit::Hb],
             ]);
 
+            // Misma variedad con dos largos: dos líneas, no una repetida.
             $this->listing($ph1, ListingKind::Want, [
                 ['Freedom', [60], 5, Unit::Hb],
                 ['Freedom', [50], 5, Unit::Hb],
                 ['Deep Purple', [60], 2, Unit::Hb],
                 ['White Chocolate', [70], 1, Unit::Hb],
-            ]);
+            ], ['needed_by' => today()->addDays(2)]);
 
             $this->listing($ph2, ListingKind::Want, [
                 ['Toffee', [50, 60], 2, Unit::Hb],
                 ['Quicksand', [60], 4, Unit::Hb],
                 ['Shimmer', [60], 3, Unit::Hb],
-            ]);
+            ], ['needed_by' => today()->addDay()]);
 
             $this->listing($ph3, ListingKind::Want, [
                 ['Hard Rock', [60, 50], 1, Unit::Hb],
                 ['Nena', [50], 2, Unit::Hb],
                 ['Voodoo', [60], 3, Unit::Hb],
                 ['Geraldine', [60], 2, Unit::Hb],
-            ]);
+            ], ['needed_by' => today()->addDays(3)]);
         });
     }
 
@@ -144,7 +145,10 @@ class DemoSeeder extends Seeder
             'user_id' => $company->owner->id,
             'kind' => $kind,
             'status' => ListingStatus::Open,
-            'expires_at' => now()->addDays(2)->endOfDay(),
+            // Cada tipo vive lo que dice la regla: 48 h un "Busco", 24 h un
+            // "Disponible". Sale del enum para no repetir el número aquí.
+            'expires_at' => $kind->expiresAt(),
+            'needed_by' => today(),
             ...$attributes,
         ]);
 

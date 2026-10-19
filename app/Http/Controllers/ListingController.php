@@ -6,10 +6,12 @@ use App\Enums\CutPoint;
 use App\Enums\Destination;
 use App\Enums\ListingKind;
 use App\Enums\ListingStatus;
+use App\Enums\OfferStatus;
 use App\Enums\Unit;
 use App\Http\Requests\StoreListingRequest;
 use App\Models\Listing;
 use App\Models\Variety;
+use App\Support\ListingPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +50,25 @@ class ListingController extends Controller
         ]);
     }
 
+    /**
+     * Detalle de una publicación. En el paso 3 se agrega "Ofertar" y en el 4
+     * la comparación de ofertas para quien publicó.
+     */
+    public function show(Request $request, Listing $listing): Response
+    {
+        Gate::authorize('view', $listing);
+
+        $listing->loadMissing(['company.zone', 'items.variety'])
+            ->loadCount([
+                'offers',
+                'offers as new_offers_count' => fn ($q) => $q->where('status', OfferStatus::Sent),
+            ]);
+
+        return Inertia::render('listings/show', [
+            'listing' => ListingPresenter::detail($listing, $request->user()->company),
+        ]);
+    }
+
     public function store(StoreListingRequest $request): RedirectResponse
     {
         Gate::authorize('create', Listing::class);
@@ -56,7 +77,7 @@ class ListingController extends Controller
         $kind = ListingKind::from($data['kind']);
         $user = $request->user();
 
-        DB::transaction(function () use ($data, $kind, $user) {
+        $listing = DB::transaction(function () use ($data, $kind, $user) {
             $listing = Listing::create([
                 'company_id' => $user->company_id,
                 'user_id' => $user->id,
@@ -77,6 +98,8 @@ class ListingController extends Controller
                     'unit' => $item['unit'],
                 ]);
             }
+
+            return $listing;
         });
 
         Inertia::flash('toast', [
@@ -86,8 +109,7 @@ class ListingController extends Controller
                 : 'Tu flor disponible ya está publicada.',
         ]);
 
-        // En el paso 2 esto lleva al detalle de la publicación recién creada.
-        return to_route('dashboard');
+        return to_route('listings.show', $listing);
     }
 
     /**
