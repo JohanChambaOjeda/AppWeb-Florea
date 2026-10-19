@@ -51,6 +51,36 @@ class Offer extends Model
     }
 
     /**
+     * Enviada y esperando respuesta: se puede editar o retirar.
+     */
+    public function isSent(): bool
+    {
+        return $this->status === OfferStatus::Sent;
+    }
+
+    /**
+     * Cuenta como oferta viva en la publicación.
+     */
+    public function isLive(): bool
+    {
+        return in_array($this->status, [OfferStatus::Sent, OfferStatus::Accepted], true);
+    }
+
+    /**
+     * Se puede volver a enviar sobre esta misma fila: o está enviada (la
+     * edito) o la retiré (vuelvo a ofertar). Una rechazada no: no se insiste.
+     */
+    public function canBeReplaced(): bool
+    {
+        return in_array($this->status, [OfferStatus::Sent, OfferStatus::Withdrawn], true);
+    }
+
+    public function belongsToCompany(?Company $company): bool
+    {
+        return $company !== null && $this->company_id === $company->id;
+    }
+
+    /**
      * @return BelongsTo<Listing, $this>
      */
     public function listing(): BelongsTo

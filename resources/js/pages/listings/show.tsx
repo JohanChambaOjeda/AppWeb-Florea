@@ -4,7 +4,9 @@ import {
     CalendarDays,
     Clock,
     Copy,
+    HandCoins,
     MapPin,
+    Pencil,
     Plane,
     Scissors,
     StickyNote,
@@ -14,9 +16,22 @@ import { cn } from '@/lib/utils';
 import { timeLeft } from '@/lib/time-left';
 import { dashboard } from '@/routes';
 import listings from '@/routes/listings';
-import type { ListingDetail, ListingDetailItem } from '@/types';
+import offers from '@/routes/offers';
+import type { ListingDetail, ListingDetailItem, MyOffer } from '@/types';
 
-export default function ShowListing({ listing }: { listing: ListingDetail }) {
+type Props = {
+    listing: ListingDetail;
+    myOffer: MyOffer | null;
+    canOffer: boolean;
+    offerDenial: string | null;
+};
+
+export default function ShowListing({
+    listing,
+    myOffer,
+    canOffer,
+    offerDenial,
+}: Props) {
     const now = useNow();
     const left = timeLeft(listing.expiresAt, now);
     const isWant = listing.kind === 'want';
@@ -115,6 +130,11 @@ export default function ShowListing({ listing }: { listing: ListingDetail }) {
                     )}
                 </section>
 
+                {/* Mi oferta */}
+                {myOffer !== null && myOffer.status !== 'withdrawn' && (
+                    <MyOfferCard offer={myOffer} listing={listing} />
+                )}
+
                 {/* Acciones */}
                 <div className="flex flex-col gap-2">
                     {listing.isMine ? (
@@ -134,15 +154,114 @@ export default function ShowListing({ listing }: { listing: ListingDetail }) {
                                     : `Has recibido ${listing.offersCount} ${listing.offersCount === 1 ? 'oferta' : 'ofertas'}. Compararlas llega en el paso 4.`}
                             </p>
                         </>
+                    ) : canOffer ? (
+                        <Link
+                            href={offers.edit(listing.id)}
+                            className="flex h-14 items-center justify-center gap-2 rounded-xl bg-primary text-lg font-semibold text-primary-foreground"
+                        >
+                            {myOffer?.canEdit ? (
+                                <>
+                                    <Pencil className="size-5" />
+                                    Editar mi oferta
+                                </>
+                            ) : (
+                                <>
+                                    <HandCoins className="size-5" />
+                                    {isWant ? 'Ofertar' : 'Quiero comprar'}
+                                </>
+                            )}
+                        </Link>
                     ) : (
-                        <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
-                            El botón “{isWant ? 'Ofertar' : 'Quiero comprar'}”
-                            llega en el paso 3.
-                        </p>
+                        offerDenial !== null && (
+                            <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+                                {offerDenial}
+                            </p>
+                        )
                     )}
                 </div>
             </div>
         </>
+    );
+}
+
+/**
+ * Lo que oferté en esta publicación. El celular de la otra empresa no sale
+ * aquí: eso llega en el paso 4, y solo si la oferta fue aceptada.
+ */
+function MyOfferCard({
+    offer,
+    listing,
+}: {
+    offer: MyOffer;
+    listing: ListingDetail;
+}) {
+    const tone = {
+        sent: 'border-sky-300 bg-sky-50 dark:border-sky-900 dark:bg-sky-950/40',
+        accepted:
+            'border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950/40',
+        rejected: 'border-input bg-muted/40',
+        withdrawn: 'border-input bg-muted/40',
+    }[offer.status];
+
+    const byItem = new Map(listing.items.map((item) => [item.id, item]));
+
+    return (
+        <section
+            className={cn('flex flex-col gap-3 rounded-xl border p-4', tone)}
+        >
+            <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-semibold">Mi oferta</h2>
+                <span className="rounded-md border bg-background px-2 py-0.5 text-xs font-medium">
+                    {offer.statusLabel}
+                </span>
+            </div>
+
+            <ul className="flex flex-col gap-1 text-sm">
+                {offer.items.map((item) => (
+                    <li key={item.id} className="flex flex-wrap gap-x-2">
+                        <span className="font-medium">
+                            {byItem.get(item.listingItemId)?.variety ??
+                                'Línea retirada'}
+                        </span>
+                        <span className="text-muted-foreground">
+                            {item.quantity} {item.unitLabel} · {item.length} cm
+                        </span>
+                    </li>
+                ))}
+            </ul>
+
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {offer.pricePerStem !== null && (
+                    <span>
+                        <span className="text-muted-foreground">Precio: </span>
+                        <span className="font-semibold">
+                            ${offer.pricePerStem} el tallo
+                        </span>
+                    </span>
+                )}
+                <span>
+                    <span className="text-muted-foreground">Entrega: </span>
+                    <span className="font-medium">{offer.deliveryLabel}</span>
+                </span>
+            </div>
+
+            {offer.photos.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {offer.photos.map((photo) => (
+                        <img
+                            key={photo.id}
+                            src={photo.url}
+                            alt="Foto de la flor que oferté"
+                            className="size-20 rounded-lg border object-cover"
+                        />
+                    ))}
+                </div>
+            )}
+
+            {offer.notes && (
+                <p className="text-sm text-muted-foreground">{offer.notes}</p>
+            )}
+        </section>
     );
 }
 

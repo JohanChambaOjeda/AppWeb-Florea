@@ -86,6 +86,47 @@ export type ListingDetail = ListingCard & {
     notes: string | null;
 };
 
+export type Delivery = 'i_deliver' | 'pickup' | 'to_agree';
+
+export type OfferItem = {
+    id: number;
+    listingItemId: number;
+    quantity: string;
+    unit: Unit;
+    unitLabel: string;
+    length: number | null;
+};
+
+export type OfferPhoto = {
+    id: number;
+    url: string;
+    takenAt: string | null;
+};
+
+export type MyOffer = {
+    id: number;
+    status: OfferStatus;
+    statusLabel: string;
+    pricePerStem: string | null;
+    delivery: Delivery;
+    deliveryLabel: string;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+    items: OfferItem[];
+    photos: OfferPhoto[];
+    canEdit: boolean;
+    canWithdraw: boolean;
+};
+
+/** Una línea de la oferta mientras se está llenando el formulario. */
+export type OfferItemDraft = {
+    checked: boolean;
+    quantity: string;
+    unit: Unit;
+    length: number | null;
+};
+
 /** Paginador de Laravel tal como lo serializa Inertia::scroll(). */
 export type Paginated<T> = {
     data: T[];

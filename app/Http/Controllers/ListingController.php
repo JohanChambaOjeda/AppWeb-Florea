@@ -12,6 +12,7 @@ use App\Http\Requests\StoreListingRequest;
 use App\Models\Listing;
 use App\Models\Variety;
 use App\Support\ListingPresenter;
+use App\Support\OfferPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,8 +52,8 @@ class ListingController extends Controller
     }
 
     /**
-     * Detalle de una publicación. En el paso 3 se agrega "Ofertar" y en el 4
-     * la comparación de ofertas para quien publicó.
+     * Detalle de una publicación. En el paso 4 se agrega la comparación de
+     * ofertas para quien publicó.
      */
     public function show(Request $request, Listing $listing): Response
     {
@@ -64,8 +65,19 @@ class ListingController extends Controller
                 'offers as new_offers_count' => fn ($q) => $q->where('status', OfferStatus::Sent),
             ]);
 
+        $company = $request->user()->company;
+
+        $mine = $listing->offers()
+            ->where('company_id', $company->id)
+            ->with(['items', 'photos'])
+            ->first();
+
         return Inertia::render('listings/show', [
-            'listing' => ListingPresenter::detail($listing, $request->user()->company),
+            'listing' => ListingPresenter::detail($listing, $company),
+            'myOffer' => $mine !== null ? OfferPresenter::mine($mine) : null,
+            // La Policy decide; la pantalla solo pinta el botón que toque.
+            'canOffer' => Gate::allows('offer', $listing),
+            'offerDenial' => Gate::inspect('offer', $listing)->message(),
         ]);
     }
 

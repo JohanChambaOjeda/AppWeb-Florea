@@ -13,9 +13,9 @@ enum Delivery: string
     public function label(): string
     {
         return match ($this) {
-            self::IDeliver => 'Yo entrego',
-            self::Pickup => 'Lo retiran',
-            self::ToAgree => 'Por acordar',
+            self::IDeliver => 'La llevo yo',
+            self::Pickup => 'Pasar retirando',
+            self::ToAgree => 'A convenir',
         };
     }
 }

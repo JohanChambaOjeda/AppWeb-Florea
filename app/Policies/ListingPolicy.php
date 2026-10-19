@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\OfferStatus;
 use App\Models\Listing;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
@@ -55,6 +56,39 @@ class ListingPolicy
         return $this->create($user)->allowed()
             ? $this->manage($user, $listing)
             : $this->create($user);
+    }
+
+    /**
+     * Ofertar (o editar mi oferta) en una publicación ajena. Reglas 1, 2 y 3.
+     */
+    public function offer(User $user, Listing $listing): Response
+    {
+        if ($user->isAdmin()) {
+            return Response::deny('El administrador no oferta.');
+        }
+
+        if (! $user->hasVerifiedCompany()) {
+            return Response::deny('Tu cuenta todavía está en revisión.');
+        }
+
+        if ($listing->belongsToCompany($user->company)) {
+            return Response::deny('No puedes ofertar en tu propia publicación.');
+        }
+
+        if (! $listing->isOpen()) {
+            return Response::deny('Esta publicación ya no recibe ofertas.');
+        }
+
+        $mine = $listing->offers()->where('company_id', $user->company->id)->first();
+
+        if ($mine !== null && ! $mine->canBeReplaced()) {
+            return Response::deny(match ($mine->status) {
+                OfferStatus::Accepted => 'Tu oferta en esta publicación ya fue aceptada.',
+                default => 'Tu oferta en esta publicación fue rechazada.',
+            });
+        }
+
+        return Response::allow();
     }
 
     /**
