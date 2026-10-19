@@ -1,7 +1,15 @@
 import { usePage } from '@inertiajs/react';
-import { Building2, Flower2, LayoutGrid, MapPin, Sprout } from 'lucide-react';
+import {
+    Building2,
+    Flower2,
+    HandCoins,
+    LayoutGrid,
+    MapPin,
+    Sprout,
+} from 'lucide-react';
 import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
+import myOffers from '@/routes/my-offers';
 import myVarieties from '@/routes/my-varieties';
 import type { NavItem } from '@/types';
 
@@ -30,6 +38,7 @@ export function useMainNav(): NavItem[] {
 
     const items: NavItem[] = [
         { title: 'Inicio', href: dashboard(), icon: LayoutGrid },
+        { title: 'Mis ofertas', href: myOffers.index(), icon: HandCoins },
     ];
 
     if (auth.company?.type === 'grower') {

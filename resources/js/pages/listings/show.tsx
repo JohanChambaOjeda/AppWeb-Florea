@@ -1,7 +1,8 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     BadgeCheck,
     CalendarDays,
+    CheckCheck,
     Clock,
     Copy,
     HandCoins,
@@ -11,30 +12,62 @@ import {
     Scissors,
     StickyNote,
 } from 'lucide-react';
+import { ContactCard } from '@/components/contact-card';
+import { OfferComparison } from '@/components/offer-comparison';
+import { PhotoGallery } from '@/components/photo-gallery';
+import { Button } from '@/components/ui/button';
 import { useNow } from '@/hooks/use-now';
 import { cn } from '@/lib/utils';
 import { timeLeft } from '@/lib/time-left';
 import { dashboard } from '@/routes';
 import listings from '@/routes/listings';
-import offers from '@/routes/offers';
-import type { ListingDetail, ListingDetailItem, MyOffer } from '@/types';
+import offerRoutes from '@/routes/offers';
+import type {
+    ListingDetail,
+    ListingDetailItem,
+    MyOffer,
+    ReceivedOffer,
+} from '@/types';
 
 type Props = {
     listing: ListingDetail;
     myOffer: MyOffer | null;
+    offers: ReceivedOffer[] | null;
     canOffer: boolean;
     offerDenial: string | null;
+    canClose: boolean;
 };
 
 export default function ShowListing({
     listing,
     myOffer,
+    offers,
     canOffer,
     offerDenial,
+    canClose,
 }: Props) {
     const now = useNow();
     const left = timeLeft(listing.expiresAt, now);
     const isWant = listing.kind === 'want';
+
+    const close = () => {
+        const pending = (offers ?? []).filter(
+            (o) => o.status === 'sent',
+        ).length;
+
+        const question =
+            pending > 0
+                ? `¿Cerrar la publicación? Se rechazarán ${pending} ${pending === 1 ? 'oferta que sigue' : 'ofertas que siguen'} esperando respuesta.`
+                : '¿Cerrar la publicación?';
+
+        if (window.confirm(question)) {
+            router.post(
+                listings.close(listing.id).url,
+                {},
+                { preserveScroll: true },
+            );
+        }
+    };
 
     return (
         <>
@@ -135,10 +168,25 @@ export default function ShowListing({
                     <MyOfferCard offer={myOffer} listing={listing} />
                 )}
 
+                {/* Ofertas recibidas: solo para quien publicó */}
+                {offers !== null && (
+                    <OfferComparison offers={offers} listing={listing} />
+                )}
+
                 {/* Acciones */}
                 <div className="flex flex-col gap-2">
                     {listing.isMine ? (
                         <>
+                            {canClose && (
+                                <Button
+                                    size="lg"
+                                    className="h-14 w-full text-lg"
+                                    onClick={close}
+                                >
+                                    <CheckCheck className="size-5" />
+                                    Ya completé
+                                </Button>
+                            )}
                             <Link
                                 href={listings.create({
                                     query: { from: listing.id },
@@ -148,15 +196,10 @@ export default function ShowListing({
                                 <Copy className="size-5" />
                                 Duplicar
                             </Link>
-                            <p className="text-center text-sm text-muted-foreground">
-                                {listing.offersCount === 0
-                                    ? 'Todavía no has recibido ofertas.'
-                                    : `Has recibido ${listing.offersCount} ${listing.offersCount === 1 ? 'oferta' : 'ofertas'}. Compararlas llega en el paso 4.`}
-                            </p>
                         </>
                     ) : canOffer ? (
                         <Link
-                            href={offers.edit(listing.id)}
+                            href={offerRoutes.edit(listing.id)}
                             className="flex h-14 items-center justify-center gap-2 rounded-xl bg-primary text-lg font-semibold text-primary-foreground"
                         >
                             {myOffer?.canEdit ? (
@@ -245,22 +288,13 @@ function MyOfferCard({
                 </span>
             </div>
 
-            {offer.photos.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    {offer.photos.map((photo) => (
-                        <img
-                            key={photo.id}
-                            src={photo.url}
-                            alt="Foto de la flor que oferté"
-                            className="size-20 rounded-lg border object-cover"
-                        />
-                    ))}
-                </div>
-            )}
+            <PhotoGallery photos={offer.photos} />
 
             {offer.notes && (
                 <p className="text-sm text-muted-foreground">{offer.notes}</p>
             )}
+
+            {offer.contact !== null && <ContactCard contact={offer.contact} />}
         </section>
     );
 }

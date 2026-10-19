@@ -10,7 +10,10 @@ use App\Enums\OfferStatus;
 use App\Enums\Unit;
 use App\Http\Requests\StoreListingRequest;
 use App\Models\Listing;
+use App\Models\Offer;
+use App\Models\User;
 use App\Models\Variety;
+use App\Notifications\OfferRejected;
 use App\Support\ListingPresenter;
 use App\Support\OfferPresenter;
 use Illuminate\Http\RedirectResponse;
@@ -65,20 +68,77 @@ class ListingController extends Controller
                 'offers as new_offers_count' => fn ($q) => $q->where('status', OfferStatus::Sent),
             ]);
 
-        $company = $request->user()->company;
+        $user = $request->user();
+        $company = $user->company;
+        $isMine = $listing->belongsToCompany($company);
 
-        $mine = $listing->offers()
+        $mine = $isMine ? null : $listing->offers()
             ->where('company_id', $company->id)
-            ->with(['items', 'photos'])
+            ->with(['items.listingItem.variety', 'photos'])
             ->first();
 
         return Inertia::render('listings/show', [
             'listing' => ListingPresenter::detail($listing, $company),
-            'myOffer' => $mine !== null ? OfferPresenter::mine($mine) : null,
+            'myOffer' => $mine !== null ? OfferPresenter::mine($mine, $user) : null,
+            // Las ofertas recibidas solo viajan a quien publicó.
+            'offers' => $isMine ? $this->offersFor($listing, $user) : null,
             // La Policy decide; la pantalla solo pinta el botón que toque.
             'canOffer' => Gate::allows('offer', $listing),
             'offerDenial' => Gate::inspect('offer', $listing)->message(),
+            'canClose' => Gate::allows('close', $listing),
         ]);
+    }
+
+    /**
+     * "Ya completé": cierra la publicación y rechaza las ofertas que
+     * quedaban enviadas (regla 7).
+     */
+    public function close(Listing $listing): RedirectResponse
+    {
+        Gate::authorize('close', $listing);
+
+        $rejected = DB::transaction(function () use ($listing) {
+            $listing->update(['status' => ListingStatus::Closed]);
+
+            $pending = $listing->offers()->where('status', OfferStatus::Sent)->with('user')->get();
+
+            $listing->offers()
+                ->where('status', OfferStatus::Sent)
+                ->update(['status' => OfferStatus::Rejected]);
+
+            return $pending;
+        });
+
+        foreach ($rejected as $offer) {
+            $offer->user->notify(new OfferRejected($offer, becauseListingClosed: true));
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $rejected->isEmpty()
+                ? 'Publicación cerrada.'
+                : 'Publicación cerrada. Avisamos a quienes seguían esperando respuesta.',
+        ]);
+
+        return back();
+    }
+
+    /**
+     * Las ofertas recibidas, para compararlas lado a lado.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function offersFor(Listing $listing, User $user): array
+    {
+        return array_values(
+            $listing->offers()
+                ->with(['company.zone', 'items.listingItem.variety', 'photos', 'user'])
+                ->orderByRaw("case status when 'accepted' then 0 when 'sent' then 1 else 2 end")
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn (Offer $offer) => OfferPresenter::forPublisher($offer, $user))
+                ->all()
+        );
     }
 
     public function store(StoreListingRequest $request): RedirectResponse

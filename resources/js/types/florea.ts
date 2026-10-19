@@ -103,7 +103,18 @@ export type OfferPhoto = {
     takenAt: string | null;
 };
 
-export type MyOffer = {
+/**
+ * El contacto de la otra empresa. Solo llega cuando la oferta está aceptada
+ * y solo a las dos partes del trato (regla 6).
+ */
+export type OfferContact = {
+    name: string;
+    companyName: string;
+    phone: string;
+    whatsappUrl: string;
+};
+
+type OfferBase = {
     id: number;
     status: OfferStatus;
     statusLabel: string;
@@ -115,8 +126,32 @@ export type MyOffer = {
     updatedAt: string;
     items: OfferItem[];
     photos: OfferPhoto[];
+    contact: OfferContact | null;
+};
+
+export type MyOffer = OfferBase & {
     canEdit: boolean;
     canWithdraw: boolean;
+};
+
+/** Una oferta recibida, vista por quien publicó. */
+export type ReceivedOffer = OfferBase & {
+    company: ListingCompany;
+    canRespond: boolean;
+};
+
+/** Mi oferta más la publicación a la que pertenece, para "Mis ofertas". */
+export type MyOfferWithListing = MyOffer & {
+    listing: {
+        id: number;
+        kind: ListingKind;
+        kindLabel: string;
+        status: ListingStatus;
+        statusLabel: string;
+        companyName: string;
+        zone: string;
+        neededByLabel: string | null;
+    };
 };
 
 /** Una línea de la oferta mientras se está llenando el formulario. */

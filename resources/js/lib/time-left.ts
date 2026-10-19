@@ -1,3 +1,33 @@
+/**
+ * Hace cuánto llegó algo, en palabras cortas: "hace 5 min", "hace 2 h",
+ * "hace 3 días". Se usa para saber qué tan fresca es una oferta.
+ */
+export function sinceLabel(iso: string, now: number): string {
+    const ms = now - new Date(iso).getTime();
+
+    if (Number.isNaN(ms)) {
+        return '';
+    }
+
+    const minutes = Math.max(0, Math.floor(ms / 60_000));
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days >= 1) {
+        return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+    }
+
+    if (hours >= 1) {
+        return `hace ${hours} h`;
+    }
+
+    if (minutes >= 1) {
+        return `hace ${minutes} min`;
+    }
+
+    return 'recién';
+}
+
 export type TimeLeft = {
     label: string;
     /** Menos de 3 horas: se pinta en rojo para que se note. */

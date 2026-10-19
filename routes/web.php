@@ -3,8 +3,10 @@
 use App\Http\Controllers\AccountPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ListingController;
+use App\Http\Controllers\MyOffersController;
 use App\Http\Controllers\MyVarietiesController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\OfferResponseController;
 use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\Route;
 
@@ -38,10 +40,18 @@ Route::middleware(['auth', 'company.verified'])->group(function () {
         Route::post('listings', [ListingController::class, 'store'])->name('listings.store');
         Route::get('listings/{listing}', [ListingController::class, 'show'])->name('listings.show');
 
+        Route::post('listings/{listing}/close', [ListingController::class, 'close'])->name('listings.close');
+
         // Mi oferta en una publicación: una sola por publicación (regla 3).
         Route::get('listings/{listing}/offer', [OfferController::class, 'edit'])->name('offers.edit');
         Route::post('listings/{listing}/offer', [OfferController::class, 'save'])->name('offers.save');
         Route::delete('listings/{listing}/offer', [OfferController::class, 'withdraw'])->name('offers.withdraw');
+
+        // Quien publicó responde las ofertas que recibió.
+        Route::post('offers/{offer}/accept', [OfferResponseController::class, 'accept'])->name('offers.accept');
+        Route::post('offers/{offer}/reject', [OfferResponseController::class, 'reject'])->name('offers.reject');
+
+        Route::get('my-offers', [MyOffersController::class, 'index'])->name('my-offers.index');
     });
 });
 
