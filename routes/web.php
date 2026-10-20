@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MyOffersController;
 use App\Http\Controllers\MyVarietiesController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OfferResponseController;
 use App\Support\PhoneNumber;
@@ -26,6 +27,10 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('account/pending', AccountPendingController::class)->name('account.pending');
+
+    // La campana vive en la barra superior de todas las pantallas.
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
 });
 
 Route::middleware(['auth', 'company.verified'])->group(function () {

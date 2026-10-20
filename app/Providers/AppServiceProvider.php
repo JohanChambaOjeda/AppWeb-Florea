@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Listing;
 use App\Models\Offer;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
@@ -36,9 +37,13 @@ class AppServiceProvider extends ServiceProvider
     {
         Date::use(CarbonImmutable::class);
 
+        // enforceMorphMap exige que TODO modelo que participe en una relación
+        // polimórfica esté aquí. User entra porque la tabla notifications
+        // guarda notifiable_type: sin él, cada notificación revienta.
         Relation::enforceMorphMap([
             'listing' => Listing::class,
             'offer' => Offer::class,
+            'user' => User::class,
         ]);
 
         DB::prohibitDestructiveCommands(

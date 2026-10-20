@@ -9,6 +9,7 @@ use App\Enums\ListingStatus;
 use App\Enums\OfferStatus;
 use App\Enums\Unit;
 use App\Http\Requests\StoreListingRequest;
+use App\Jobs\NotifyMatchingGrowers;
 use App\Models\Listing;
 use App\Models\Offer;
 use App\Models\User;
@@ -173,6 +174,10 @@ class ListingController extends Controller
 
             return $listing;
         });
+
+        // Encolado: un "Busco" de ocho variedades puede tocar a decenas de
+        // productores, y quien publica no debe esperar por eso.
+        NotifyMatchingGrowers::dispatch($listing);
 
         Inertia::flash('toast', [
             'type' => 'success',

@@ -33,6 +33,24 @@ export type ListingItemDraft = {
 
 export type HomeTab = 'for-me' | 'available' | 'mine';
 
+export type NotificationKind =
+    | 'offer_received'
+    | 'offer_accepted'
+    | 'offer_rejected'
+    | 'listing_expired'
+    | 'matching_listing';
+
+export type AppNotification = {
+    id: string;
+    kind: NotificationKind;
+    title: string;
+    body: string;
+    listingId: number | null;
+    url: string | null;
+    read: boolean;
+    createdAt: string | null;
+};
+
 /** Lo que se puede mostrar de la empresa que publica. Nunca el celular. */
 export type ListingCompany = {
     name: string;

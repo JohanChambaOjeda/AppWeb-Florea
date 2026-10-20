@@ -53,3 +53,19 @@ Cliente que paga: la vendedora de la poscosecha (suscripción mensual a partir d
   `DB_CONNECTION=mysql DB_DATABASE=florea_testing php vendor/bin/pest`
 - Tras cambiar rutas: `php artisan wayfinder:generate --with-form` (genera `resources/js/routes` y `resources/js/actions`, que no van a git).
 - Datos demo: `php artisan migrate:fresh --seed` (el DemoSeeder solo corre en local). Usuarios demo con contraseña `florea2026`; admin desde `ADMIN_PHONE` / `ADMIN_PASSWORD`.
+- Fotos de ofertas: hace falta `php artisan storage:link` una vez, o las miniaturas salen roto.
+- La cola es `database` y no hay worker permanente. En local, para que salgan los avisos a productores: `php artisan queue:work --stop-when-empty` (o `php artisan schedule:work`, que además vence publicaciones).
+
+## Tareas programadas (producción)
+
+Todo cuelga de una sola línea de cron, porque Hostinger compartido no permite procesos permanentes:
+
+```
+* * * * * cd /home/USUARIO/florea && php artisan schedule:run >> /dev/null 2>&1
+```
+
+De ahí salen (ver `routes/console.php`):
+
+- `listings:expire` cada 5 minutos — vence publicaciones y rechaza sus ofertas pendientes (regla 7).
+- `queue:work --stop-when-empty --tries=3 --max-time=50` cada minuto — vacía la cola y termina solo, sin daemon.
+- `queue:prune-failed --hours=168` cada semana.

@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -50,6 +52,13 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
                 'isAdmin' => (bool) $user?->isAdmin(),
             ],
+            // La campana: el contador viaja en cada respuesta porque es una
+            // cuenta indexada y barata. La lista solo se carga al abrir la
+            // campana, con un reload parcial de esta prop.
+            'unreadNotifications' => $user !== null ? $user->unreadNotifications()->count() : 0,
+            'notifications' => $user !== null
+                ? Inertia::optional(fn () => NotificationPresenter::latestFor($user))
+                : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
