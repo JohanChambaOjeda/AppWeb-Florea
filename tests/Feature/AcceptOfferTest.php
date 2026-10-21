@@ -3,10 +3,8 @@
 use App\Enums\ListingKind;
 use App\Enums\ListingStatus;
 use App\Enums\OfferStatus;
-use App\Models\Company;
 use App\Models\Deal;
 use App\Models\Listing;
-use App\Models\Offer;
 use App\Models\User;
 use App\Models\Variety;
 use App\Notifications\OfferAccepted;
@@ -16,81 +14,32 @@ use Illuminate\Support\Facades\Notification;
 beforeEach(function () {
     Notification::fake();
 
-    $this->publisher = User::factory()->create([
-        'company_id' => Company::factory()->postharvest()->verified(),
-    ]);
+    $this->publisher = postharvestUser();
 });
 
-/** Publicación con dos líneas, de la poscosecha que publica. */
-function listingWithItems(User $publisher, ListingKind $kind = ListingKind::Want): Listing
-{
-    $listing = Listing::factory()->create([
-        'company_id' => $publisher->company_id,
-        'user_id' => $publisher->id,
-        'kind' => $kind,
-        'needed_by' => today(),
-        'expires_at' => $kind->expiresAt(),
-    ]);
-
-    foreach (['Explorer', 'Freedom'] as $name) {
-        $listing->items()->create([
-            'variety_id' => Variety::factory()->create(['name' => $name])->id,
-            'lengths' => [70, 60],
-            'quantity' => 3,
-            'unit' => 'hb',
-        ]);
-    }
-
-    return $listing;
-}
-
 /**
- * Oferta enviada por un productor sobre la primera línea.
- *
- * El productor lleva una variedad registrada a propósito: sin ella el
- * middleware grower.onboarded lo manda a "Mis variedades" y nunca llega a
- * la Policy.
+ * Un "Busco" con dos líneas, Explorer y Freedom, que aceptan 70 y 60.
+ * Las ofertas de los tests cubren la primera línea.
  */
-function offerFrom(Listing $listing, ?User $seller = null, float $price = 0.45): Offer
+function wantWithTwoLines(User $publisher): Listing
 {
-    if ($seller === null) {
-        $seller = User::factory()->create([
-            'company_id' => Company::factory()->grower()->verified(),
-        ]);
-
-        $seller->company->varieties()->attach(
-            Variety::factory()->create()->id,
-            ['lengths' => [60]],
-        );
-    }
-
-    $offer = $listing->offers()->create([
-        'company_id' => $seller->company_id,
-        'user_id' => $seller->id,
-        'price_per_stem' => $price,
-        'delivery' => 'i_deliver',
-        'status' => OfferStatus::Sent,
-    ]);
-
-    $offer->items()->create([
-        'listing_item_id' => $listing->items->first()->id,
-        'quantity' => 3,
-        'unit' => 'hb',
-        'length' => 70,
-    ]);
-
-    return $offer;
+    return listingFrom($publisher, ListingKind::Want, [
+        Variety::factory()->create(['name' => 'Explorer']),
+        Variety::factory()->create(['name' => 'Freedom']),
+    ], [70, 60]);
 }
 
-/** Las props de Inertia como texto, sin escapar las barras de las URLs. */
-function propsJson($page): string
+function haveWithTwoLines(User $publisher): Listing
 {
-    return json_encode($page->toArray()['props'], JSON_UNESCAPED_SLASHES) ?: '';
+    return listingFrom($publisher, ListingKind::Have, [
+        Variety::factory()->create(['name' => 'Explorer']),
+        Variety::factory()->create(['name' => 'Freedom']),
+    ], [70, 60]);
 }
 
 test('aceptar crea el trato con comprador y vendedor según el tipo', function () {
-    $listing = listingWithItems($this->publisher, ListingKind::Want);
-    $offer = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)
         ->post(route('offers.accept', $offer))
@@ -108,8 +57,8 @@ test('aceptar crea el trato con comprador y vendedor según el tipo', function (
 });
 
 test('en un "Disponible" los papeles se invierten', function () {
-    $listing = listingWithItems($this->publisher, ListingKind::Have);
-    $offer = offerFrom($listing);
+    $listing = haveWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
 
@@ -121,9 +70,9 @@ test('en un "Disponible" los papeles se invierten', function () {
 });
 
 test('se pueden aceptar dos ofertas distintas en la misma publicación', function () {
-    $listing = listingWithItems($this->publisher);
-    $a = offerFrom($listing);
-    $b = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $a = offerOn($listing);
+    $b = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $a))->assertRedirect();
     $this->actingAs($this->publisher)->post(route('offers.accept', $b))->assertRedirect();
@@ -136,8 +85,8 @@ test('se pueden aceptar dos ofertas distintas en la misma publicación', functio
 });
 
 test('rechazar deja la oferta en "rejected" y avisa', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.reject', $offer))->assertRedirect();
 
@@ -148,9 +97,9 @@ test('rechazar deja la oferta en "rejected" y avisa', function () {
 });
 
 test('solo quien publicó puede aceptar o rechazar', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing);
-    $intruso = User::factory()->create(['company_id' => Company::factory()->postharvest()->verified()]);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
+    $intruso = postharvestUser();
 
     $this->actingAs($intruso)->post(route('offers.accept', $offer))->assertForbidden();
     $this->actingAs($offer->user)->post(route('offers.accept', $offer))->assertForbidden();
@@ -159,8 +108,8 @@ test('solo quien publicó puede aceptar o rechazar', function () {
 });
 
 test('una oferta ya respondida no se vuelve a responder', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
     $this->actingAs($this->publisher)->post(route('offers.accept', $offer))->assertForbidden();
@@ -169,9 +118,9 @@ test('una oferta ya respondida no se vuelve a responder', function () {
 });
 
 test('"Ya completé" cierra la publicación y rechaza las ofertas pendientes', function () {
-    $listing = listingWithItems($this->publisher);
-    $aceptada = offerFrom($listing);
-    $pendiente = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $aceptada = offerOn($listing);
+    $pendiente = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $aceptada));
     $this->actingAs($this->publisher)->post(route('listings.close', $listing))->assertRedirect();
@@ -185,8 +134,8 @@ test('"Ya completé" cierra la publicación y rechaza las ofertas pendientes', f
 });
 
 test('no se puede cerrar la publicación de otra empresa', function () {
-    $listing = listingWithItems($this->publisher);
-    $otro = User::factory()->create(['company_id' => Company::factory()->postharvest()->verified()]);
+    $listing = wantWithTwoLines($this->publisher);
+    $otro = postharvestUser();
 
     $this->actingAs($otro)->post(route('listings.close', $listing))->assertForbidden();
 
@@ -194,8 +143,8 @@ test('no se puede cerrar la publicación de otra empresa', function () {
 });
 
 test('el celular aparece solo después del trato, a las dos partes', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
     $seller = $offer->user;
 
     $sellerPhone = $seller->phone;
@@ -239,14 +188,14 @@ test('el celular aparece solo después del trato, a las dos partes', function ()
 });
 
 test('un tercero no ve el celular aunque el trato exista', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
     $sellerPhone = $offer->user->phone;
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
 
     // Otro productor mira la publicación: no es parte del trato.
-    $tercero = User::factory()->create(['company_id' => Company::factory()->grower()->verified()]);
+    $tercero = growerUser(Variety::factory()->create());
     $tercero->company->varieties()->attach(Variety::factory()->create()->id, ['lengths' => [60]]);
 
     $this->actingAs($tercero)
@@ -258,8 +207,8 @@ test('un tercero no ve el celular aunque el trato exista', function () {
 });
 
 test('el mensaje de WhatsApp lleva nombre, empresa y lo acordado', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing, price: 0.45);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
 
@@ -273,15 +222,15 @@ test('el mensaje de WhatsApp lleva nombre, empresa y lo acordado', function () {
                 ->toContain($this->publisher->name)
                 ->toContain($this->publisher->company->name)
                 ->toContain('Acepté tu oferta')
-                ->toContain('3 HB Explorer 70')
+                ->toContain('2 HB Explorer 70')
                 ->toContain('$0,45 el tallo')
                 ->toContain('¿Coordinamos la entrega?');
         });
 });
 
 test('quien ofertó recibe el mensaje en la otra dirección', function () {
-    $listing = listingWithItems($this->publisher);
-    $offer = offerFrom($listing);
+    $listing = wantWithTwoLines($this->publisher);
+    $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
 
@@ -291,6 +240,6 @@ test('quien ofertó recibe el mensaje en la otra dirección', function () {
             $url = $page->toArray()['props']['offers']['data'][0]['contact']['whatsappUrl'];
             $text = urldecode(parse_url($url, PHP_URL_QUERY) ?? '');
 
-            expect($text)->toContain('Aceptaste mi oferta')->toContain('3 HB Explorer 70');
+            expect($text)->toContain('Aceptaste mi oferta')->toContain('2 HB Explorer 70');
         });
 });

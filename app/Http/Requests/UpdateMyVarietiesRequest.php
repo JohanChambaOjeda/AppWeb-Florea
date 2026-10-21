@@ -18,7 +18,11 @@ class UpdateMyVarietiesRequest extends FormRequest
             'varieties' => ['required', 'array', 'min:1'],
             'varieties.*.variety_id' => ['required', 'integer', 'distinct', 'exists:varieties,id,is_active,1'],
             'varieties.*.lengths' => ['required', 'array', 'min:1'],
-            'varieties.*.lengths.*' => ['required', 'integer', "between:{$min},{$max}", 'distinct'],
+            // Sin "distinct": en una ruta anidada como varieties.*.lengths.*
+            // Laravel compara TODOS los largos de TODAS las variedades, así
+            // que sembrar Freedom 60 y Explorer 60 salía como duplicado. Los
+            // repetidos dentro de una variedad los limpia chosenVarieties().
+            'varieties.*.lengths.*' => ['required', 'integer', "between:{$min},{$max}"],
         ];
     }
 

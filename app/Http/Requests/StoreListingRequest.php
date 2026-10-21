@@ -26,7 +26,11 @@ class StoreListingRequest extends FormRequest
             'items' => ['required', 'array', 'min:1', 'max:30'],
             'items.*.variety_id' => ['required', 'integer', 'exists:varieties,id,is_active,1'],
             'items.*.lengths' => ['required', 'array', 'min:1', 'max:10'],
-            'items.*.lengths.*' => ['required', 'integer', "between:{$min},{$max}", 'distinct'],
+            // Sin "distinct": en una ruta anidada como items.*.lengths.*
+            // Laravel compara TODOS los largos de TODAS las líneas, así que
+            // pedir Pink Floyd 60 y Explorer 60 salía como duplicado. Los
+            // repetidos dentro de una línea los limpia cleanLengths().
+            'items.*.lengths.*' => ['required', 'integer', "between:{$min},{$max}"],
             'items.*.quantity' => ['nullable', 'numeric', 'min:0.01', 'max:9999.99'],
             'items.*.unit' => ['required', Rule::enum(Unit::class)],
 

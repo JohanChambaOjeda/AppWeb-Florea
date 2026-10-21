@@ -2,9 +2,7 @@
 
 use App\Enums\ListingKind;
 use App\Enums\OfferStatus;
-use App\Models\Company;
 use App\Models\Listing;
-use App\Models\User;
 use App\Models\Variety;
 use App\Notifications\OfferReceived;
 use Illuminate\Http\UploadedFile;
@@ -16,31 +14,13 @@ beforeEach(function () {
     Notification::fake();
 
     $this->variety = Variety::factory()->create();
-    $this->seller = User::factory()->create(['company_id' => Company::factory()->grower()->verified()]);
-    $this->seller->company->varieties()->attach($this->variety->id, ['lengths' => [60]]);
+    $this->seller = growerUser($this->variety);
 });
 
 /** Publicación de otra empresa, del tipo que se pida. */
 function listingOf(ListingKind $kind, array $lengths = [60, 50]): Listing
 {
-    $owner = User::factory()->create(['company_id' => Company::factory()->postharvest()->verified()]);
-
-    $listing = Listing::factory()->create([
-        'company_id' => $owner->company_id,
-        'user_id' => $owner->id,
-        'kind' => $kind,
-        'needed_by' => today(),
-        'expires_at' => $kind->expiresAt(),
-    ]);
-
-    $listing->items()->create([
-        'variety_id' => Variety::factory()->create()->id,
-        'lengths' => $lengths,
-        'quantity' => 2,
-        'unit' => 'hb',
-    ]);
-
-    return $listing;
+    return listingFrom(postharvestUser(), $kind, [Variety::factory()->create()], $lengths);
 }
 
 function photo(): UploadedFile

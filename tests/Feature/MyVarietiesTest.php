@@ -5,12 +5,8 @@ use App\Models\CompanyVariety;
 use App\Models\User;
 use App\Models\Variety;
 
-function growerUser(): User
-{
-    return User::factory()->create([
-        'company_id' => Company::factory()->grower()->verified(),
-    ]);
-}
+// growerUser() vive en tests/Pest.php. Sin argumentos devuelve un productor
+// sin variedades, que es justo lo que necesitan estos tests de onboarding.
 
 test('un productor sin variedades ve primero "Mis variedades"', function () {
     $user = growerUser();
@@ -127,4 +123,22 @@ test('un productor no verificado va a "cuenta en revisión"', function () {
     $user = User::factory()->create(['company_id' => Company::factory()->grower()]);
 
     $this->actingAs($user)->get(route('my-varieties.edit'))->assertRedirect(route('account.pending'));
+});
+
+test('un productor puede sembrar dos variedades en el mismo largo', function () {
+    $user = growerUser();
+    $freedom = Variety::factory()->create(['name' => 'Freedom']);
+    $explorer = Variety::factory()->create(['name' => 'Explorer']);
+
+    // Casi todo se siembra en 60: si esto falla, la pantalla es inusable.
+    $this->actingAs($user)
+        ->put(route('my-varieties.update'), [
+            'varieties' => [
+                ['variety_id' => $freedom->id, 'lengths' => [60]],
+                ['variety_id' => $explorer->id, 'lengths' => [60, 70]],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($user->company->companyVarieties()->count())->toBe(2);
 });

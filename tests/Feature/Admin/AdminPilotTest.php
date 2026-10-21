@@ -1,51 +1,26 @@
 <?php
 
 use App\Enums\ListingKind;
-use App\Enums\OfferStatus;
-use App\Models\Company;
 use App\Models\Deal;
 use App\Models\Listing;
 use App\Models\Offer;
 use App\Models\User;
 use App\Models\Variety;
 use App\Support\Metrics;
-use Illuminate\Database\Eloquent\Model;
 
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
     $this->variety = Variety::factory()->create(['name' => 'Explorer']);
 });
 
-/**
- * created_at no está en el #[Fillable] de los modelos, así que create() y
- * update() lo ignoran en silencio. Para fechar hacia atrás hay que forzarlo.
- */
-function backdate(Model $model, int $minutesAgo): void
-{
-    $model->forceFill(['created_at' => now()->subMinutes($minutesAgo)])->save();
-}
-
-/** Publicación creada hace $minutesAgo minutos. */
+/** Publicación "Busco" de Explorer 60, creada hace $minutesAgo minutos. */
 function listingCreatedAgo(int $minutesAgo, ListingKind $kind = ListingKind::Want): Listing
 {
-    $owner = User::factory()->create(['company_id' => Company::factory()->postharvest()->verified()]);
-
-    $listing = Listing::factory()->create([
-        'company_id' => $owner->company_id,
-        'user_id' => $owner->id,
-        'kind' => $kind,
-        'needed_by' => today(),
-        'expires_at' => $kind->expiresAt(),
+    $listing = listingFrom(postharvestUser(), $kind, [
+        Variety::firstWhere('name', 'Explorer') ?? Variety::factory()->create(['name' => 'Explorer']),
     ]);
 
     backdate($listing, $minutesAgo);
-
-    $listing->items()->create([
-        'variety_id' => Variety::where('name', 'Explorer')->value('id') ?? Variety::factory()->create()->id,
-        'lengths' => [60],
-        'quantity' => 2,
-        'unit' => 'hb',
-    ]);
 
     return $listing;
 }
@@ -53,24 +28,9 @@ function listingCreatedAgo(int $minutesAgo, ListingKind $kind = ListingKind::Wan
 /** Oferta sobre esa publicación, creada hace $minutesAgo minutos. */
 function offerCreatedAgo(Listing $listing, int $minutesAgo): Offer
 {
-    $seller = User::factory()->create(['company_id' => Company::factory()->grower()->verified()]);
-
-    $offer = $listing->offers()->create([
-        'company_id' => $seller->company_id,
-        'user_id' => $seller->id,
-        'price_per_stem' => 0.45,
-        'delivery' => 'i_deliver',
-        'status' => OfferStatus::Sent,
-    ]);
+    $offer = offerOn($listing);
 
     backdate($offer, $minutesAgo);
-
-    $offer->items()->create([
-        'listing_item_id' => $listing->items->first()->id,
-        'quantity' => 2,
-        'unit' => 'hb',
-        'length' => 60,
-    ]);
 
     return $offer;
 }
@@ -206,7 +166,7 @@ test('los tratos cerrados muestran comprador, vendedor y lo acordado', function 
 });
 
 test('las pantallas nuevas del admin están cerradas a las empresas', function (string $route) {
-    $empresa = User::factory()->create(['company_id' => Company::factory()->postharvest()->verified()]);
+    $empresa = postharvestUser();
 
     $this->actingAs($empresa)->get(route($route))->assertForbidden();
 })->with(['admin.listings.index', 'admin.deals.index']);

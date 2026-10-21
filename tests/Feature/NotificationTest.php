@@ -4,9 +4,6 @@ use App\Enums\ListingKind;
 use App\Enums\ListingStatus;
 use App\Enums\OfferStatus;
 use App\Jobs\NotifyMatchingGrowers;
-use App\Models\Company;
-use App\Models\Listing;
-use App\Models\User;
 use App\Models\Variety;
 use App\Notifications\ListingExpired;
 use App\Notifications\MatchingListingPublished;
@@ -17,49 +14,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
-/** Productor verificado que siembra las variedades dadas. */
-function growerWith(Variety ...$varieties): User
-{
-    $user = User::factory()->create(['company_id' => Company::factory()->grower()->verified()]);
-
-    foreach ($varieties as $variety) {
-        $user->company->varieties()->attach($variety->id, ['lengths' => [60]]);
-    }
-
-    return $user;
-}
-
-function publisherUser(): User
-{
-    return User::factory()->create(['company_id' => Company::factory()->postharvest()->verified()]);
-}
-
-/** Publicación con una línea por variedad. */
-function listingAsking(User $owner, ListingKind $kind, Variety ...$varieties): Listing
-{
-    $listing = Listing::factory()->create([
-        'company_id' => $owner->company_id,
-        'user_id' => $owner->id,
-        'kind' => $kind,
-        'needed_by' => today(),
-        'expires_at' => $kind->expiresAt(),
-    ]);
-
-    foreach ($varieties as $variety) {
-        $listing->items()->create(['variety_id' => $variety->id, 'lengths' => [60], 'unit' => 'hb']);
-    }
-
-    return $listing;
-}
-
 test('el comando vence las publicaciones pasadas de plazo y rechaza sus ofertas', function () {
     Notification::fake();
 
     $variety = Variety::factory()->create();
-    $publisher = publisherUser();
-    $seller = growerWith($variety);
+    $publisher = postharvestUser();
+    $seller = growerUser($variety);
 
-    $vencida = listingAsking($publisher, ListingKind::Want, $variety);
+    $vencida = listingFrom($publisher, ListingKind::Want, [$variety]);
     $vencida->update(['expires_at' => now()->subMinute()]);
 
     $oferta = $vencida->offers()->create([
@@ -71,7 +33,7 @@ test('el comando vence las publicaciones pasadas de plazo y rechaza sus ofertas'
     ]);
 
     // Una dentro de plazo, que no se debe tocar.
-    $vigente = listingAsking($publisher, ListingKind::Want, $variety);
+    $vigente = listingFrom($publisher, ListingKind::Want, [$variety]);
 
     $this->artisan('listings:expire')->assertSuccessful();
 
@@ -87,7 +49,7 @@ test('el comando es idempotente: correrlo dos veces no cambia nada más', functi
     Notification::fake();
 
     $variety = Variety::factory()->create();
-    $listing = listingAsking(publisherUser(), ListingKind::Want, $variety);
+    $listing = listingFrom(postharvestUser(), ListingKind::Want, [$variety]);
     $listing->update(['expires_at' => now()->subMinute()]);
 
     $this->artisan('listings:expire');
@@ -101,7 +63,7 @@ test('una publicación cerrada a mano no la vuelve a tocar el comando', function
     Notification::fake();
 
     $variety = Variety::factory()->create();
-    $listing = listingAsking(publisherUser(), ListingKind::Want, $variety);
+    $listing = listingFrom(postharvestUser(), ListingKind::Want, [$variety]);
     $listing->update(['status' => ListingStatus::Closed, 'expires_at' => now()->subMinute()]);
 
     $this->artisan('listings:expire');
@@ -114,7 +76,7 @@ test('publicar un "Busco" encola el aviso a los productores', function () {
     Queue::fake();
 
     $variety = Variety::factory()->create();
-    $publisher = publisherUser();
+    $publisher = postharvestUser();
 
     $this->actingAs($publisher)->post(route('listings.store'), [
         'kind' => 'want',
@@ -130,12 +92,12 @@ test('el aviso llega solo a los productores que siembran esas variedades', funct
 
     [$freedom, $explorer] = [Variety::factory()->create(['name' => 'Freedom']), Variety::factory()->create(['name' => 'Explorer'])];
 
-    $publisher = publisherUser();
-    $coincide = growerWith($freedom);
-    $noCoincide = growerWith($explorer);
-    $otraPoscosecha = publisherUser();
+    $publisher = postharvestUser();
+    $coincide = growerUser($freedom);
+    $noCoincide = growerUser($explorer);
+    $otraPoscosecha = postharvestUser();
 
-    $listing = listingAsking($publisher, ListingKind::Want, $freedom);
+    $listing = listingFrom($publisher, ListingKind::Want, [$freedom]);
 
     (new NotifyMatchingGrowers($listing))->handle();
 
@@ -154,8 +116,8 @@ test('el aviso nombra solo las variedades que el productor siembra', function ()
         Variety::factory()->create(['name' => 'Mondial']),
     ];
 
-    $grower = growerWith($freedom, $explorer);
-    $listing = listingAsking(publisherUser(), ListingKind::Want, $freedom, $explorer, $mondial);
+    $grower = growerUser($freedom, $explorer);
+    $listing = listingFrom(postharvestUser(), ListingKind::Want, [$freedom, $explorer, $mondial]);
 
     (new NotifyMatchingGrowers($listing))->handle();
 
@@ -173,8 +135,8 @@ test('un "Disponible" no avisa a nadie', function () {
     Notification::fake();
 
     $variety = Variety::factory()->create();
-    $grower = growerWith($variety);
-    $listing = listingAsking(publisherUser(), ListingKind::Have, $variety);
+    $grower = growerUser($variety);
+    $listing = listingFrom(postharvestUser(), ListingKind::Have, [$variety]);
 
     (new NotifyMatchingGrowers($listing))->handle();
 
@@ -186,8 +148,8 @@ test('a quien publica no se le avisa de su propia publicación', function () {
 
     $variety = Variety::factory()->create();
     // Un productor que publica un "Busco" de su propia variedad.
-    $grower = growerWith($variety);
-    $listing = listingAsking($grower, ListingKind::Want, $variety);
+    $grower = growerUser($variety);
+    $listing = listingFrom($grower, ListingKind::Want, [$variety]);
 
     (new NotifyMatchingGrowers($listing))->handle();
 
@@ -196,15 +158,15 @@ test('a quien publica no se le avisa de su propia publicación', function () {
 
 test('el aviso a productores va encolado, no en la misma petición', function () {
     expect(new MatchingListingPublished(
-        listingAsking(publisherUser(), ListingKind::Want, Variety::factory()->create()),
+        listingFrom(postharvestUser(), ListingKind::Want, [Variety::factory()->create()]),
         ['Freedom'],
     ))->toBeInstanceOf(ShouldQueue::class);
 });
 
 test('el contador de no leídas viaja en todas las pantallas', function () {
     $variety = Variety::factory()->create();
-    $grower = growerWith($variety);
-    $listing = listingAsking(publisherUser(), ListingKind::Want, $variety);
+    $grower = growerUser($variety);
+    $listing = listingFrom(postharvestUser(), ListingKind::Want, [$variety]);
 
     (new NotifyMatchingGrowers($listing))->handle();
 
@@ -215,8 +177,8 @@ test('el contador de no leídas viaja en todas las pantallas', function () {
 
 test('la campana lista las notificaciones y se pueden marcar leídas', function () {
     $variety = Variety::factory()->create();
-    $grower = growerWith($variety);
-    $listing = listingAsking(publisherUser(), ListingKind::Want, $variety);
+    $grower = growerUser($variety);
+    $listing = listingFrom(postharvestUser(), ListingKind::Want, [$variety]);
 
     (new NotifyMatchingGrowers($listing))->handle();
 
@@ -243,10 +205,10 @@ test('la campana lista las notificaciones y se pueden marcar leídas', function 
 
 test('solo se pueden marcar leídas las notificaciones propias', function () {
     $variety = Variety::factory()->create();
-    $mias = growerWith($variety);
-    $ajenas = growerWith($variety);
+    $mias = growerUser($variety);
+    $ajenas = growerUser($variety);
 
-    $listing = listingAsking(publisherUser(), ListingKind::Want, $variety);
+    $listing = listingFrom(postharvestUser(), ListingKind::Want, [$variety]);
     (new NotifyMatchingGrowers($listing))->handle();
 
     $ajena = $ajenas->notifications()->sole();
@@ -259,9 +221,9 @@ test('solo se pueden marcar leídas las notificaciones propias', function () {
 
 test('ninguna notificación guarda un celular', function () {
     $variety = Variety::factory()->create();
-    $publisher = publisherUser();
-    $seller = growerWith($variety);
-    $listing = listingAsking($publisher, ListingKind::Want, $variety);
+    $publisher = postharvestUser();
+    $seller = growerUser($variety);
+    $listing = listingFrom($publisher, ListingKind::Want, [$variety]);
 
     // Se genera el ciclo completo: aviso, oferta, aceptación.
     (new NotifyMatchingGrowers($listing))->handle();
