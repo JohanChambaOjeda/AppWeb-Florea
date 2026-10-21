@@ -2,12 +2,17 @@
 
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DealController;
+use App\Http\Controllers\Admin\ListingController;
 use App\Http\Controllers\Admin\VarietyController;
 use App\Http\Controllers\Admin\ZoneController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+
+    Route::get('listings', [ListingController::class, 'index'])->name('listings.index');
+    Route::get('deals', [DealController::class, 'index'])->name('deals.index');
 
     Route::get('companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::post('companies/{company}/verify', [CompanyController::class, 'verify'])->name('companies.verify');

@@ -1,8 +1,10 @@
 import { usePage } from '@inertiajs/react';
 import {
     Building2,
+    ClipboardList,
     Flower2,
     HandCoins,
+    Handshake,
     LayoutGrid,
     MapPin,
     Sprout,
@@ -22,6 +24,12 @@ export function useMainNav(): NavItem[] {
     if (auth.isAdmin) {
         return [
             { title: 'Inicio', href: admin.dashboard(), icon: LayoutGrid },
+            {
+                title: 'Publicaciones',
+                href: admin.listings.index(),
+                icon: ClipboardList,
+            },
+            { title: 'Tratos', href: admin.deals.index(), icon: Handshake },
             {
                 title: 'Empresas',
                 href: admin.companies.index(),

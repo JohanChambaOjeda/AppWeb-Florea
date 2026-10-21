@@ -31,6 +31,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon $expires_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read string|null $first_offer_at agregado por withMin
+ * @property-read int|null $offers_count agregado por withCount
+ * @property-read int|null $new_offers_count agregado por withCount
+ * @property-read int|null $accepted_offers_count agregado por withCount
  * @property-read Company $company
  * @property-read Collection<int, ListingItem> $items
  * @property-read Collection<int, Offer> $offers
