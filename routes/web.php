@@ -25,6 +25,9 @@ Route::middleware('guest')->group(function () {
     })->name('password.request');
 });
 
+// Instalar la app: se puede ver sin haber entrado todavía.
+Route::inertia('install', 'install')->name('install');
+
 Route::middleware('auth')->group(function () {
     Route::get('account/pending', AccountPendingController::class)->name('account.pending');
 

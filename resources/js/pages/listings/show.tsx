@@ -17,6 +17,7 @@ import { OfferComparison } from '@/components/offer-comparison';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { Button } from '@/components/ui/button';
 import { useNow } from '@/hooks/use-now';
+import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { timeLeft } from '@/lib/time-left';
 import { dashboard } from '@/routes';
@@ -278,7 +279,7 @@ function MyOfferCard({
                     <span>
                         <span className="text-muted-foreground">Precio: </span>
                         <span className="font-semibold">
-                            ${offer.pricePerStem} el tallo
+                            {money(offer.pricePerStem)} el tallo
                         </span>
                     </span>
                 )}

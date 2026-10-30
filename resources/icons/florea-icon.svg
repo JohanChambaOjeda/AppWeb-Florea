@@ -1,0 +1,28 @@
+<!--
+  Ícono provisional de Florea: una flor de cuatro pétalos en violeta con el
+  centro celeste. Es el archivo fuente: cambia esto y vuelve a correr
+  `php artisan florea:icons` para regenerar los PNG.
+
+  Reemplázalo cuando llegue el logo definitivo.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <rect width="512" height="512" rx="0" fill="#7c3aed"/>
+    <g transform="translate(256 256)">
+        <!-- Cuatro pétalos -->
+        <g fill="#ffffff" fill-opacity="0.95">
+            <ellipse cx="0" cy="-74" rx="48" ry="74"/>
+            <ellipse cx="0" cy="74" rx="48" ry="74"/>
+            <ellipse cx="-74" cy="0" rx="74" ry="48"/>
+            <ellipse cx="74" cy="0" rx="74" ry="48"/>
+        </g>
+        <!-- Pétalos en diagonal, un poco más atrás -->
+        <g fill="#ffffff" fill-opacity="0.75" transform="rotate(45)">
+            <ellipse cx="0" cy="-66" rx="38" ry="66"/>
+            <ellipse cx="0" cy="66" rx="38" ry="66"/>
+            <ellipse cx="-66" cy="0" rx="66" ry="38"/>
+            <ellipse cx="66" cy="0" rx="66" ry="38"/>
+        </g>
+        <!-- Centro celeste -->
+        <circle cx="0" cy="0" r="46" fill="#0ea5e9"/>
+    </g>
+</svg>

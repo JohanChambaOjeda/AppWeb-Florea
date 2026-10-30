@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { ArrowRight, Handshake } from 'lucide-react';
+import { money } from '@/lib/format';
 import admin from '@/routes/admin';
 import type { Paginated } from '@/types';
 
@@ -103,9 +104,7 @@ export default function AdminDeals({ deals }: Props) {
                                             </div>
                                         </td>
                                         <td className="p-3 font-semibold whitespace-nowrap tabular-nums">
-                                            {deal.pricePerStem !== null
-                                                ? `$${deal.pricePerStem}`
-                                                : '—'}
+                                            {money(deal.pricePerStem)}
                                         </td>
                                         <td className="p-3 whitespace-nowrap">
                                             {deal.delivery}

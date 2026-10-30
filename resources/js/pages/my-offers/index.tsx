@@ -5,6 +5,7 @@ import { PhotoGallery } from '@/components/photo-gallery';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useNow } from '@/hooks/use-now';
+import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { sinceLabel } from '@/lib/time-left';
 import { dashboard } from '@/routes';
@@ -130,7 +131,7 @@ function OfferRow({ offer }: { offer: MyOfferWithListing }) {
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
                 {offer.pricePerStem !== null && (
                     <span className="text-base font-bold">
-                        ${offer.pricePerStem}
+                        {money(offer.pricePerStem)}
                         <span className="text-sm font-normal text-muted-foreground">
                             {' '}
                             el tallo

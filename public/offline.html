@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#7c3aed" />
+        <title>Sin conexión - Florea</title>
+        <!--
+            Esta página se guarda en caché y se muestra cuando no hay señal.
+            Lleva los estilos dentro a propósito: si dependiera del CSS
+            compilado, se vería rota justo cuando más falta hace.
+        -->
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                min-height: 100dvh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+                background: #faf8ff;
+                color: #1c1917;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    'Segoe UI',
+                    Roboto,
+                    sans-serif;
+                text-align: center;
+            }
+            .card {
+                max-width: 24rem;
+            }
+            img {
+                width: 88px;
+                height: 88px;
+                border-radius: 20px;
+            }
+            h1 {
+                margin: 20px 0 8px;
+                font-size: 22px;
+                line-height: 1.3;
+            }
+            p {
+                margin: 0 0 24px;
+                font-size: 16px;
+                line-height: 1.5;
+                color: #57534e;
+            }
+            button {
+                width: 100%;
+                min-height: 52px;
+                padding: 0 24px;
+                border: 0;
+                border-radius: 12px;
+                background: #7c3aed;
+                color: #fff;
+                font-size: 17px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            button:active {
+                background: #6d28d9;
+            }
+            .hint {
+                margin-top: 20px;
+                font-size: 14px;
+                color: #78716c;
+            }
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background: #1c1917;
+                    color: #fafaf9;
+                }
+                p {
+                    color: #a8a29e;
+                }
+                .hint {
+                    color: #78716c;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <img src="/icons/icon-192.png" alt="Florea" />
+            <h1>Sin conexión</h1>
+            <p>
+                No hay internet en este momento. Florea necesita señal para
+                mostrarte los pedidos y las ofertas al día.
+            </p>
+            <button type="button" onclick="location.reload()">
+                Reintentar
+            </button>
+            <p class="hint">
+                Si estás en el invernadero, prueba a salir o cambiar de wifi a
+                datos móviles.
+            </p>
+        </div>
+    </body>
+</html>

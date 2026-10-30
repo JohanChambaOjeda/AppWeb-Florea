@@ -6,6 +6,7 @@ import {
     SlidersHorizontal,
     Sprout,
 } from 'lucide-react';
+import { InstallBanner } from '@/components/install-banner';
 import { ListingCard } from '@/components/listing-card';
 import { OptionButtons } from '@/components/option-buttons';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,8 @@ export default function Dashboard({
             <Head title="Inicio" />
 
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
+                <InstallBanner />
+
                 {/* Publicar */}
                 <div className="grid grid-cols-2 gap-3">
                     <NewListingButton

@@ -5,6 +5,7 @@ import { ContactCard } from '@/components/contact-card';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { Button } from '@/components/ui/button';
 import { useNow } from '@/hooks/use-now';
+import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { sinceLabel } from '@/lib/time-left';
 import offers from '@/routes/offers';
@@ -165,7 +166,7 @@ function OfferCard({
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 {offer.pricePerStem !== null && (
                     <span className="text-lg font-bold">
-                        ${offer.pricePerStem}
+                        {money(offer.pricePerStem)}
                         <span className="text-sm font-normal text-muted-foreground">
                             {' '}
                             el tallo
@@ -284,9 +285,7 @@ function OfferTable({
                                 </ul>
                             </td>
                             <td className="p-3 align-top font-semibold whitespace-nowrap">
-                                {offer.pricePerStem !== null
-                                    ? `$${offer.pricePerStem}`
-                                    : '—'}
+                                {money(offer.pricePerStem)}
                             </td>
                             <td className="p-3 align-top">
                                 {offer.deliveryLabel}
