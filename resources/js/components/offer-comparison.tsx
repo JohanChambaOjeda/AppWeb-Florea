@@ -3,6 +3,7 @@ import { BadgeCheck, Check, MapPin, X } from 'lucide-react';
 import { useState } from 'react';
 import { ContactCard } from '@/components/contact-card';
 import { PhotoGallery } from '@/components/photo-gallery';
+import { ReputationBadge } from '@/components/reputation-badge';
 import { Button } from '@/components/ui/button';
 import { useNow } from '@/hooks/use-now';
 import { money } from '@/lib/format';
@@ -148,6 +149,8 @@ function OfferCard({
                     {offer.company.zone}
                 </span>
             </p>
+
+            <ReputationBadge reputation={offer.company.reputation} />
 
             {/* Qué cubre */}
             <ul className="flex flex-col gap-1 text-sm">

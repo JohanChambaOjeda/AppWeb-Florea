@@ -43,6 +43,10 @@ class OfferResponseController extends Controller
             ]);
         });
 
+        // El contador de tratos cambia para las dos: sale en sus tarjetas.
+        $offer->listing->company->recomputeReputation();
+        $offer->company->recomputeReputation();
+
         Notifier::send($offer->user, new OfferAccepted($offer));
 
         Inertia::flash('toast', [

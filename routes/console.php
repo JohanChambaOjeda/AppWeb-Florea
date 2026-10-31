@@ -39,3 +39,6 @@ Schedule::command('push:digest')
 
 // Los trabajos fallidos no se acumulan para siempre.
 Schedule::command('queue:prune-failed --hours=168')->weekly();
+
+// Pide calificar los tratos: al día siguiente y otra vez a los 3 días.
+Schedule::command('ratings:request')->dailyAt('09:00');

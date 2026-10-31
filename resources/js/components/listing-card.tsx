@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { BadgeCheck, CalendarDays, Clock, MapPin, Tag } from 'lucide-react';
+import { ReputationBadge } from '@/components/reputation-badge';
 import { useNow } from '@/hooks/use-now';
 import { cn } from '@/lib/utils';
 import { timeLeft } from '@/lib/time-left';
@@ -62,6 +63,10 @@ export function ListingCard({ listing }: { listing: Card }) {
                     {listing.company.zone}
                 </span>
             </div>
+
+            {!listing.isMine && (
+                <ReputationBadge reputation={listing.company.reputation} />
+            )}
 
             {/* Líneas resumidas */}
             <p className="text-base leading-snug font-medium">

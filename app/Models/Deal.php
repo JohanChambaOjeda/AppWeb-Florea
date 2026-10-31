@@ -57,6 +57,29 @@ class Deal extends Model
             ->exists();
     }
 
+    public function involves(Company $company): bool
+    {
+        return in_array($company->id, [$this->buyer_company_id, $this->seller_company_id], true);
+    }
+
+    public function ratedBy(Company $company): bool
+    {
+        return $this->ratings()->where('from_company_id', $company->id)->exists();
+    }
+
+    public function isBuyer(Company $company): bool
+    {
+        return $this->buyer_company_id === $company->id;
+    }
+
+    /**
+     * La otra parte del trato, vista desde $company.
+     */
+    public function otherCompany(Company $company): Company
+    {
+        return $this->isBuyer($company) ? $this->sellerCompany : $this->buyerCompany;
+    }
+
     /**
      * @return BelongsTo<Offer, $this>
      */

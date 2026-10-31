@@ -32,6 +32,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $rejection_reason
  * @property Plan $plan
  * @property Carbon|null $plan_until
+ * @property int $ratings_count
+ * @property string|null $ratings_avg
+ * @property int|null $on_time_pct
+ * @property int $deals_count
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property Carbon|null $deleted_at
@@ -104,6 +108,46 @@ class Company extends Model
     {
         $this->forceFill(['rejection_reason' => $reason])->save();
         $this->delete();
+    }
+
+    /**
+     * Con menos de 3 calificaciones no se muestra promedio: un 5 de una sola
+     * persona no dice nada, y un 2 tampoco. Se muestra "Nuevo en Florea".
+     */
+    public const MIN_RATINGS = 3;
+
+    public function hasReputation(): bool
+    {
+        return $this->ratings_count >= self::MIN_RATINGS;
+    }
+
+    /**
+     * Recalcula los números de reputación desde las calificaciones.
+     *
+     * Se llama al guardar una calificación y al cerrar un trato. Es barato
+     * (tres agregados) y pasa pocas veces al día, mientras que leerlo pasa
+     * en cada tarjeta de cada lista.
+     */
+    public function recomputeReputation(): void
+    {
+        $received = $this->ratingsReceived();
+
+        $count = (clone $received)->count();
+        $average = $count > 0 ? (clone $received)->avg('score') : null;
+
+        // El % a tiempo solo cuenta las calificaciones donde se respondió.
+        $withOnTime = (clone $received)->whereNotNull('on_time');
+        $answered = (clone $withOnTime)->count();
+        $onTime = $answered > 0
+            ? (int) round((clone $withOnTime)->where('on_time', true)->count() / $answered * 100)
+            : null;
+
+        $this->forceFill([
+            'ratings_count' => $count,
+            'ratings_avg' => $average !== null ? round((float) $average, 2) : null,
+            'on_time_pct' => $onTime,
+            'deals_count' => $this->dealsAsBuyer()->count() + $this->dealsAsSeller()->count(),
+        ])->save();
     }
 
     public function isGrower(): bool

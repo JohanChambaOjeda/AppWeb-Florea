@@ -51,6 +51,15 @@ export type AppNotification = {
     createdAt: string | null;
 };
 
+/** Los números públicos de una empresa. Nunca comentarios. */
+export type Reputation = {
+    isNew: boolean;
+    stars: number | null;
+    ratings: number;
+    deals: number;
+    onTimePct: number | null;
+};
+
 /** Lo que se puede mostrar de la empresa que publica. Nunca el celular. */
 export type ListingCompany = {
     name: string;
@@ -58,6 +67,7 @@ export type ListingCompany = {
     typeLabel: string;
     zone: string;
     verified: boolean;
+    reputation: Reputation;
 };
 
 export type NeededBy = {

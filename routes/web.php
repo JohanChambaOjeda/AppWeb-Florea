@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OfferResponseController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\RatingController;
 use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +66,10 @@ Route::middleware(['auth', 'company.verified'])->group(function () {
         Route::post('offers/{offer}/reject', [OfferResponseController::class, 'reject'])->name('offers.reject');
 
         Route::get('my-offers', [MyOffersController::class, 'index'])->name('my-offers.index');
+
+        // Calificar un trato cerrado, una sola vez por empresa.
+        Route::get('deals/{deal}/rate', [RatingController::class, 'create'])->name('ratings.create');
+        Route::post('deals/{deal}/rate', [RatingController::class, 'store'])->name('ratings.store');
     });
 });
 

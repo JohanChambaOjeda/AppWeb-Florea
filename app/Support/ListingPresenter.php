@@ -84,6 +84,7 @@ final class ListingPresenter
             'typeLabel' => $company->type->label(),
             'zone' => $company->zone->name,
             'verified' => $company->isVerified(),
+            'reputation' => Reputation::of($company),
         ];
     }
 
