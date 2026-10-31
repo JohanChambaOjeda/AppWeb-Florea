@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
-import { login } from '@/routes';
+import { login, privacy, terms } from '@/routes';
 import { store } from '@/routes/register';
 
 type CompanyType = 'postharvest' | 'grower';
@@ -203,6 +203,29 @@ export default function Register({
                                 <InputError message={errors.password} />
                             </div>
                         </fieldset>
+
+                        {/* Obligatorio: la ley pide consentimiento, y el
+                            servidor guarda la fecha al crear la cuenta. */}
+                        <label className="flex items-start gap-3 rounded-xl border bg-card p-4">
+                            <input
+                                type="checkbox"
+                                name="terms"
+                                value="1"
+                                className="mt-0.5 size-5 shrink-0 accent-violet-600"
+                            />
+                            <span className="text-sm">
+                                Acepto los{' '}
+                                <TextLink href={terms()}>
+                                    términos de uso
+                                </TextLink>{' '}
+                                y la{' '}
+                                <TextLink href={privacy()}>
+                                    política de privacidad
+                                </TextLink>
+                                .
+                            </span>
+                        </label>
+                        <InputError message={errors.terms} />
 
                         <Button
                             type="submit"

@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { ArrowRight, Handshake } from 'lucide-react';
+import { ArrowRight, Handshake, Star } from 'lucide-react';
 import { money } from '@/lib/format';
 import admin from '@/routes/admin';
 import type { Paginated } from '@/types';
@@ -16,6 +16,15 @@ type Row = {
     what: string;
     pricePerStem: string | null;
     delivery: string;
+    delivered: string | null;
+    rejectedRange: string | null;
+    ratings: {
+        id: number;
+        from: string;
+        score: number;
+        onTime: boolean | null;
+        comment: string | null;
+    }[];
 };
 
 type Props = {
@@ -70,6 +79,12 @@ export default function AdminDeals({ deals }: Props) {
                                     <th className="p-3 font-semibold">
                                         Entrega
                                     </th>
+                                    <th className="p-3 font-semibold">
+                                        Resultado
+                                    </th>
+                                    <th className="p-3 font-semibold">
+                                        Comentarios (solo admin)
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -109,6 +124,30 @@ export default function AdminDeals({ deals }: Props) {
                                         <td className="p-3 whitespace-nowrap">
                                             {deal.delivery}
                                         </td>
+                                        <td className="p-3">
+                                            {deal.delivered === null ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    Sin calificar
+                                                </span>
+                                            ) : (
+                                                <div className="flex flex-col gap-0.5 text-xs">
+                                                    <span>
+                                                        Entregado:{' '}
+                                                        {deal.delivered}
+                                                    </span>
+                                                    {deal.rejectedRange !==
+                                                        null && (
+                                                        <span className="text-muted-foreground">
+                                                            Rechazo:{' '}
+                                                            {deal.rejectedRange}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="max-w-sm p-3">
+                                            <Comments ratings={deal.ratings} />
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -117,6 +156,41 @@ export default function AdminDeals({ deals }: Props) {
                 )}
             </div>
         </>
+    );
+}
+
+/**
+ * Los comentarios de las calificaciones. Solo salen aquí: en la app, las
+ * empresas ven únicamente los números de reputación.
+ */
+function Comments({ ratings }: { ratings: Row['ratings'] }) {
+    if (ratings.length === 0) {
+        return (
+            <span className="text-xs text-muted-foreground">
+                Nadie ha calificado
+            </span>
+        );
+    }
+
+    return (
+        <ul className="flex flex-col gap-2">
+            {ratings.map((rating) => (
+                <li key={rating.id} className="text-xs">
+                    <span className="flex items-center gap-1 font-medium">
+                        <Star className="size-3 fill-amber-400 text-amber-400" />
+                        {rating.score} · {rating.from}
+                        {rating.onTime === false && (
+                            <span className="text-red-600">· tarde</span>
+                        )}
+                    </span>
+                    {rating.comment !== null && (
+                        <span className="text-muted-foreground italic">
+                            “{rating.comment}”
+                        </span>
+                    )}
+                </li>
+            ))}
+        </ul>
     );
 }
 

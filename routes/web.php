@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MyOffersController;
 use App\Http\Controllers\MyVarietiesController;
@@ -27,6 +28,10 @@ Route::middleware('guest')->group(function () {
         ]);
     })->name('password.request');
 });
+
+// Legales: se leen sin cuenta, y se enlazan desde el registro.
+Route::get('privacidad', [LegalController::class, 'privacy'])->name('privacy');
+Route::get('terminos', [LegalController::class, 'terms'])->name('terms');
 
 // Instalar la app: se puede ver sin haber entrado todavía.
 Route::inertia('install', 'install')->name('install');
@@ -55,14 +60,18 @@ Route::middleware(['auth', 'company.verified'])->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
         Route::get('listings/create', [ListingController::class, 'create'])->name('listings.create');
-        Route::post('listings', [ListingController::class, 'store'])->name('listings.store');
+        Route::post('listings', [ListingController::class, 'store'])
+            ->middleware('throttle:publish')
+            ->name('listings.store');
         Route::get('listings/{listing}', [ListingController::class, 'show'])->name('listings.show');
 
         Route::post('listings/{listing}/close', [ListingController::class, 'close'])->name('listings.close');
 
         // Mi oferta en una publicación: una sola por publicación (regla 3).
         Route::get('listings/{listing}/offer', [OfferController::class, 'edit'])->name('offers.edit');
-        Route::post('listings/{listing}/offer', [OfferController::class, 'save'])->name('offers.save');
+        Route::post('listings/{listing}/offer', [OfferController::class, 'save'])
+            ->middleware('throttle:offer')
+            ->name('offers.save');
         Route::delete('listings/{listing}/offer', [OfferController::class, 'withdraw'])->name('offers.withdraw');
 
         // Quien publicó responde las ofertas que recibió.

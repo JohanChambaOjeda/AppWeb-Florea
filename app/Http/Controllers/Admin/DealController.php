@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RejectedRange;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
+use App\Models\Rating;
 use App\Support\OfferPresenter;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +23,7 @@ class DealController extends Controller
                 'sellerCompany:id,name,type',
                 'offer.items.listingItem.variety:id,name',
                 'offer.listing:id,kind,needed_by',
+                'ratings.fromCompany:id,name',
             ])
             ->orderByDesc('closed_at')
             ->paginate(30)
@@ -37,6 +40,19 @@ class DealController extends Controller
                 'what' => OfferPresenter::summary($deal->offer),
                 'pricePerStem' => $deal->offer->price_per_stem,
                 'delivery' => $deal->offer->delivery->label(),
+                'delivered' => $deal->delivered?->label(),
+                'rejectedRange' => RejectedRange::fromPercent(
+                    $deal->rejected_pct !== null ? (float) $deal->rejected_pct : null,
+                )?->label(),
+                // Los comentarios los lee SOLO el admin: en la app las
+                // empresas ven únicamente los números (regla del paso 3).
+                'ratings' => $deal->ratings->map(fn (Rating $rating) => [
+                    'id' => $rating->id,
+                    'from' => $rating->fromCompany->name,
+                    'score' => $rating->score,
+                    'onTime' => $rating->on_time,
+                    'comment' => $rating->comment,
+                ])->all(),
             ]);
 
         return Inertia::render('admin/deals/index', [

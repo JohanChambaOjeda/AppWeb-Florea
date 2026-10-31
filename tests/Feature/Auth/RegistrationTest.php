@@ -17,6 +17,8 @@ function registrationData(array $overrides = []): array
         'name' => 'Ana Pérez',
         'phone' => '0991234567',
         'password' => 'clave-segura',
+        // Obligatorio desde la semana 3: sin esto no se crea la cuenta.
+        'terms' => '1',
         ...$overrides,
     ];
 }

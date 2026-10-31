@@ -167,12 +167,16 @@ function backdate(Model $model, int $minutesAgo): void
 /**
  * Las props de Inertia como texto, sin escapar las barras de las URLs.
  *
- * json_encode convierte "wa.me/593..." en "wa.me\/593...", así que sin esto
- * las aserciones sobre enlaces de WhatsApp fallan aunque el enlace esté bien.
+ * json_encode convierte "wa.me/593..." en "wa.me\/593..." y "Quién" en
+ * "Quién", así que sin esto fallan las aserciones sobre enlaces y
+ * sobre cualquier texto con tilde, aunque el contenido esté bien.
  */
 function propsJson($page): string
 {
-    return json_encode($page->toArray()['props'], JSON_UNESCAPED_SLASHES) ?: '';
+    return json_encode(
+        $page->toArray()['props'],
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+    ) ?: '';
 }
 
 /**

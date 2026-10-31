@@ -37,9 +37,13 @@ class CreateNewUser implements CreatesNewUsers
             'name' => $this->nameRules(),
             'phone' => $this->phoneRules(),
             'password' => ['required', 'string', Password::default()],
+            // La ley ecuatoriana pide poder demostrar el consentimiento,
+            // así que además de exigirlo se guarda la fecha.
+            'terms' => ['accepted'],
         ], [
             ...$this->phoneMessages(),
             'tax_id.regex' => 'El RUC tiene 13 dígitos y la cédula 10. Escribe solo números.',
+            'terms.accepted' => 'Para crear la cuenta hay que aceptar los términos y la política de privacidad.',
         ], [
             'type' => 'tipo de empresa',
             'company_name' => 'nombre de la finca o poscosecha',
@@ -65,6 +69,7 @@ class CreateNewUser implements CreatesNewUsers
                 'phone' => $data['phone'],
                 'role' => UserRole::Owner,
                 'password' => $data['password'],
+                'terms_accepted_at' => now(),
             ]);
         });
     }

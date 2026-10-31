@@ -26,6 +26,7 @@ use NotificationChannels\WebPush\HasPushSubscriptions;
  * @property UserRole $role
  * @property Carbon|null $last_seen_at
  * @property Carbon|null $push_window_until
+ * @property Carbon|null $terms_accepted_at
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
@@ -36,7 +37,7 @@ use NotificationChannels\WebPush\HasPushSubscriptions;
  * @property Carbon|null $updated_at
  * @property-read Company|null $company
  */
-#[Fillable(['company_id', 'name', 'phone', 'email', 'password', 'role', 'last_seen_at'])]
+#[Fillable(['company_id', 'name', 'phone', 'email', 'password', 'role', 'last_seen_at', 'terms_accepted_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -56,6 +57,7 @@ class User extends Authenticatable implements PasskeyUser
             'role' => UserRole::class,
             'last_seen_at' => 'datetime',
             'push_window_until' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
