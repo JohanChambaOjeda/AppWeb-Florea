@@ -1,11 +1,13 @@
 import { Link, router } from '@inertiajs/react';
-import { Download, LogOut, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Download, LogOut, MessageSquareWarning, Settings } from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { FeedbackDialog } from '@/components/feedback-dialog';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { install, logout } from '@/routes';
@@ -18,6 +20,7 @@ type Props = {
 
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
 
     const handleLogout = () => {
         cleanup();
@@ -26,6 +29,10 @@ export function UserMenuContent({ user }: Props) {
 
     return (
         <>
+            <FeedbackDialog
+                open={feedbackOpen}
+                onOpenChange={setFeedbackOpen}
+            />
             <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <UserInfo user={user} showEmail={true} />
@@ -53,6 +60,16 @@ export function UserMenuContent({ user }: Props) {
                         <Download className="mr-2" />
                         Instalar Florea
                     </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={(event) => {
+                        event.preventDefault();
+                        setFeedbackOpen(true);
+                    }}
+                >
+                    <MessageSquareWarning className="mr-2" />
+                    ¿Algo no funcionó?
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

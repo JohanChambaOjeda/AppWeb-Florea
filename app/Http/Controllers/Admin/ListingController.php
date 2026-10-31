@@ -46,6 +46,10 @@ class ListingController extends Controller
                 'status' => $listing->status->value,
                 'statusLabel' => $listing->status->label(),
                 'createdAt' => $listing->created_at->toIso8601String(),
+                // Para reenviar a mano por WhatsApp a quien no tiene avisos.
+                'whatsappText' => $listing->isOpen()
+                    ? self::whatsappText($listing)
+                    : null,
             ]);
 
         return Inertia::render('admin/listings/index', [
@@ -68,5 +72,27 @@ class ListingController extends Controller
         }
 
         return rescue(fn () => Carbon::parse($raw)->startOfDay(), today(), report: false);
+    }
+
+    /**
+     * Mensaje listo para pegar en WhatsApp.
+     *
+     * En el piloto habrá productores sin avisos activados; esto deja que el
+     * admin les pase el pedido a mano sin tener que escribirlo.
+     */
+    private static function whatsappText(Listing $listing): string
+    {
+        $what = $listing->items
+            ->map(fn (ListingItem $item) => $item->variety->name.' '.implode('/', $item->lengths))
+            ->implode(', ');
+
+        $when = match (true) {
+            $listing->needed_by?->isToday() === true => ' para hoy',
+            $listing->needed_by?->isTomorrow() === true => ' para mañana',
+            default => '',
+        };
+
+        return "{$listing->company->name} busca{$when}: {$what}. "
+            .'Puedes ofertar aquí: '.route('listings.show', $listing->id);
     }
 }

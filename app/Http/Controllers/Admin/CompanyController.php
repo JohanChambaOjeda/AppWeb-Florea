@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\CompanyType;
+use App\Enums\Plan;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Support\PhoneNumber;
@@ -47,6 +48,10 @@ class CompanyController extends Controller
                 'typeLabel' => $company->type->label(),
                 'taxId' => $company->tax_id,
                 'zone' => $company->zone->name,
+                'plan' => $company->plan->value,
+                'planLabel' => $company->plan->label(),
+                'planUntil' => $company->plan_until?->toDateString(),
+                'planNote' => $company->plan_note,
                 'addressReference' => $company->address_reference,
                 'ownerName' => $company->owner?->name,
                 'ownerPhone' => $company->owner ? PhoneNumber::display($company->owner->phone) : null,
@@ -95,6 +100,36 @@ class CompanyController extends Controller
         $company->reject($data['reason'] ?? null);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$company->name} rechazada."]);
+
+        return back();
+    }
+
+    /**
+     * El admin cambia el plan de una empresa. No hay cobros dentro de la
+     * app todavía: esto solo deja anotado quién paga, hasta cuándo y por qué.
+     */
+    public function updatePlan(Request $request, Company $company): RedirectResponse
+    {
+        $data = $request->validate([
+            'plan' => ['required', Rule::enum(Plan::class)],
+            'plan_until' => ['nullable', 'date'],
+            'plan_note' => ['nullable', 'string', 'max:255'],
+        ], attributes: [
+            'plan' => 'plan',
+            'plan_until' => 'vigente hasta',
+            'plan_note' => 'nota',
+        ]);
+
+        $company->update([
+            'plan' => $data['plan'],
+            'plan_until' => $data['plan_until'] ?? null,
+            'plan_note' => $data['plan_note'] ?? null,
+        ]);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => "Plan de {$company->name} actualizado.",
+        ]);
 
         return back();
     }

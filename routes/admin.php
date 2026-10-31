@@ -3,13 +3,23 @@
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DealController;
+use App\Http\Controllers\Admin\FeedbackController;
 use App\Http\Controllers\Admin\ListingController;
+use App\Http\Controllers\Admin\MetricsController;
 use App\Http\Controllers\Admin\VarietyController;
 use App\Http\Controllers\Admin\ZoneController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+
+    Route::get('metrics', [MetricsController::class, 'index'])->name('metrics.index');
+    Route::get('metrics/export', [MetricsController::class, 'export'])->name('metrics.export');
+
+    Route::get('feedback', [FeedbackController::class, 'index'])->name('feedback.index');
+    Route::post('feedback/{feedback}/toggle', [FeedbackController::class, 'toggle'])->name('feedback.toggle');
+
+    Route::post('companies/{company}/plan', [CompanyController::class, 'updatePlan'])->name('companies.plan');
 
     Route::get('listings', [ListingController::class, 'index'])->name('listings.index');
     Route::get('deals', [DealController::class, 'index'])->name('deals.index');

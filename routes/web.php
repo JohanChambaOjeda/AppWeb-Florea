@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountPendingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MyOffersController;
 use App\Http\Controllers\MyVarietiesController;
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
     // Avisos push: una suscripcion por dispositivo.
     Route::post('push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
     Route::delete('push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
+
+    // "Algo no funciono": comentarios desde cualquier pantalla.
+    Route::post('feedback', [FeedbackController::class, 'store'])->name('feedback.store');
 
     // La campana vive en la barra superior de todas las pantallas.
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');

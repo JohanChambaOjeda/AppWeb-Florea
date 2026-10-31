@@ -32,6 +32,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $rejection_reason
  * @property Plan $plan
  * @property Carbon|null $plan_until
+ * @property string|null $plan_note
  * @property int $ratings_count
  * @property string|null $ratings_avg
  * @property int|null $on_time_pct
@@ -47,7 +48,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'type', 'name', 'tax_id', 'zone_id', 'address_reference', 'id_document_path',
-    'verified_at', 'verified_by', 'rejection_reason', 'plan', 'plan_until',
+    'verified_at', 'verified_by', 'rejection_reason', 'plan', 'plan_until', 'plan_note',
 ])]
 class Company extends Model
 {

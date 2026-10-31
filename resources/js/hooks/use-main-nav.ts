@@ -7,7 +7,9 @@ import {
     Handshake,
     LayoutGrid,
     MapPin,
+    MessageSquareWarning,
     Sprout,
+    Target,
 } from 'lucide-react';
 import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
@@ -24,6 +26,12 @@ export function useMainNav(): NavItem[] {
     if (auth.isAdmin) {
         return [
             { title: 'Inicio', href: admin.dashboard(), icon: LayoutGrid },
+            { title: 'Métricas', href: admin.metrics.index(), icon: Target },
+            {
+                title: 'Comentarios',
+                href: admin.feedback.index(),
+                icon: MessageSquareWarning,
+            },
             {
                 title: 'Publicaciones',
                 href: admin.listings.index(),
