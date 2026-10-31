@@ -88,6 +88,27 @@ test('la mediana aguanta mejor un caso raro que el promedio', function () {
         ->and($first['averageMinutes'])->toBe(390);
 });
 
+test('con varias ofertas cuenta la primera, no la última', function () {
+    $listing = wantWithWait(publishedAgoHours: 20, waitHours: 2);
+
+    // Llegan dos más, mucho después. La métrica mide cuánto tardó la
+    // vendedora en tener algo que mirar, así que solo importa la primera.
+    foreach ([6, 10] as $hours) {
+        offerOn($listing)->forceFill([
+            'created_at' => $listing->created_at->copy()->addHours($hours),
+        ])->save();
+    }
+
+    $week = PilotMetrics::forWeek(now());
+
+    expect($week['firstOffer']['medianMinutes'])->toBe(120)
+        ->and($week['firstOffer']['measured'])->toBe(1)
+        // Sigue siendo rápida: 2 h, no 10 h.
+        ->and($week['fast']['withinHours'])->toBe(1)
+        // Pero las tres ofertas cuentan como actividad.
+        ->and($week['offers'])->toBe(3);
+});
+
 test('sin datos la métrica es nula y no revienta', function () {
     $week = PilotMetrics::forWeek(now());
 
