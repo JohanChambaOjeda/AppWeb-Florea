@@ -1,5 +1,7 @@
-import { MessageCircle, Phone } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { MessageCircle, Phone, Star } from 'lucide-react';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { create as rateDeal } from '@/routes/ratings';
 import type { OfferContact } from '@/types';
 
 /**
@@ -42,6 +44,22 @@ export function ContactCard({ contact }: { contact: OfferContact }) {
                     {copied === contact.phone ? '· copiado' : '· copiar'}
                 </span>
             </button>
+
+            {contact.dealId !== null &&
+                (contact.rated ? (
+                    <p className="flex items-center justify-center gap-1.5 border-t border-green-200 pt-3 text-sm text-muted-foreground dark:border-green-900">
+                        <Star className="size-4" />
+                        Ya calificaste este trato
+                    </p>
+                ) : (
+                    <Link
+                        href={rateDeal(contact.dealId)}
+                        className="flex items-center justify-center gap-1.5 border-t border-green-200 pt-3 text-sm font-medium underline-offset-4 hover:underline dark:border-green-900"
+                    >
+                        <Star className="size-4" />
+                        Calificar este trato
+                    </Link>
+                ))}
         </div>
     );
 }

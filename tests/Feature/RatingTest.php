@@ -50,6 +50,88 @@ function ratingPayload(array $override = []): array
     ];
 }
 
+/**
+ * Un trato nacido como nace de verdad: alguien acepta una oferta.
+ *
+ * @return array{Deal, User, User}
+ */
+function acceptedDeal(): array
+{
+    $variety = Variety::factory()->create(['name' => 'Explorer']);
+    $buyer = postharvestUser();
+    $seller = growerUser($variety);
+
+    $listing = listingFrom($buyer, ListingKind::Want, [$variety], [70]);
+    $offer = offerOn($listing, $seller);
+
+    test()->actingAs($buyer)->post(route('offers.accept', $offer));
+
+    return [Deal::sole(), $buyer, $seller];
+}
+
+/**
+ * El aviso del día siguiente no puede ser la única puerta a calificar: quien
+ * lo descarta se quedaría sin poder hacerlo, y la reputación en blanco. El
+ * trato lleva el enlace, y lo ven las dos partes.
+ */
+test('las dos partes llegan a calificar desde el trato, sin el aviso', function () {
+    [$deal, $buyer, $seller] = acceptedDeal();
+
+    // Quien publicó lo ve en su publicación.
+    $this->actingAs($buyer)
+        ->get(route('listings.show', $deal->offer->listing_id))
+        ->assertOk()
+        ->assertInertia(function ($page) use ($deal) {
+            $offer = collect(props($page)['offers'])->firstWhere('id', $deal->offer_id);
+
+            expect($offer['contact']['dealId'])->toBe($deal->id)
+                ->and($offer['contact']['rated'])->toBeFalse();
+        });
+
+    // Quien ofertó, en "Mis ofertas".
+    $this->actingAs($seller)
+        ->get(route('my-offers.index'))
+        ->assertOk()
+        ->assertInertia(function ($page) use ($deal) {
+            $offer = collect(props($page)['offers']['data'])->firstWhere('id', $deal->offer_id);
+
+            expect($offer['contact']['dealId'])->toBe($deal->id)
+                ->and($offer['contact']['rated'])->toBeFalse();
+        });
+
+    // Y el enlace lleva a una pantalla que de verdad existe.
+    $this->actingAs($seller)
+        ->get(route('ratings.create', $deal->id))
+        ->assertOk();
+});
+
+test('quien ya calificó no ve otra vez la invitación', function () {
+    [$deal, $buyer] = acceptedDeal();
+
+    $this->actingAs($buyer)
+        ->post(route('ratings.store', $deal->id), ratingPayload())
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($buyer)
+        ->get(route('listings.show', $deal->offer->listing_id))
+        ->assertInertia(function ($page) use ($deal) {
+            $offer = collect(props($page)['offers'])->firstWhere('id', $deal->offer_id);
+
+            expect($offer['contact']['rated'])->toBeTrue();
+        });
+});
+
+test('un tercero no ve el trato ni el enlace de calificar', function () {
+    [$deal] = acceptedDeal();
+
+    $this->actingAs(postharvestUser())
+        ->get(route('listings.show', $deal->offer->listing_id))
+        ->assertOk()
+        ->assertInertia(fn ($page) => expect(propsJson($page))
+            ->not->toContain('dealId')
+            ->not->toContain('"contact"'));
+});
+
 test('el comprador califica y su respuesta actualiza el trato', function () {
     [$deal, $buyer, $seller] = closedDeal();
 

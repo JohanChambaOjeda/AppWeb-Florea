@@ -64,6 +64,12 @@ class Deal extends Model
 
     public function ratedBy(Company $company): bool
     {
+        // Si ya vienen cargadas, no se vuelve a preguntar a la base: esto se
+        // llama una vez por oferta en las listas.
+        if ($this->relationLoaded('ratings')) {
+            return $this->ratings->contains('from_company_id', $company->id);
+        }
+
         return $this->ratings()->where('from_company_id', $company->id)->exists();
     }
 

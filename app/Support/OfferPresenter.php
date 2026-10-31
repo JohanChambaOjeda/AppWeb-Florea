@@ -98,12 +98,20 @@ final class OfferPresenter
         $other = $isPublisher ? $offer->user : $listing->user;
         $otherCompany = $isPublisher ? $offer->company : $listing->company;
 
+        // El trato es la única puerta a la calificación que no caduca. Sin
+        // esto, quien descarta el aviso del día siguiente no puede calificar
+        // nunca, y sin calificaciones la reputación se queda en blanco.
+        $deal = $offer->deal;
+        $company = $viewer->company;
+
         return [
             'name' => $other->name,
             'companyName' => $otherCompany->name,
             'phone' => PhoneNumber::display($other->phone),
             'whatsappUrl' => 'https://wa.me/'.PhoneNumber::whatsapp($other->phone)
                 .'?text='.rawurlencode(self::whatsappMessage($offer, $viewer, $isPublisher)),
+            'dealId' => $deal?->id,
+            'rated' => $deal !== null && $company !== null && $deal->ratedBy($company),
         ];
     }
 

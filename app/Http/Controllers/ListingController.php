@@ -76,7 +76,7 @@ class ListingController extends Controller
 
         $mine = $isMine ? null : $listing->offers()
             ->where('company_id', $company->id)
-            ->with(['items.listingItem.variety', 'photos'])
+            ->with(['items.listingItem.variety', 'photos', 'deal.ratings'])
             ->first();
 
         return Inertia::render('listings/show', [
@@ -134,7 +134,7 @@ class ListingController extends Controller
     {
         return array_values(
             $listing->offers()
-                ->with(['company.zone', 'items.listingItem.variety', 'photos', 'user'])
+                ->with(['company.zone', 'items.listingItem.variety', 'photos', 'user', 'deal.ratings'])
                 ->orderByRaw("case status when 'accepted' then 0 when 'sent' then 1 else 2 end")
                 ->orderByDesc('created_at')
                 ->get()

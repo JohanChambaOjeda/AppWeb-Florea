@@ -26,6 +26,8 @@ class MyOffersController extends Controller
                 'items.listingItem.variety',
                 'photos',
                 'user',
+                // Para el enlace de calificar, sin una consulta por oferta.
+                'deal.ratings',
             ])
             // Primero las aceptadas (hay que coordinar), luego las que
             // esperan respuesta, al final las cerradas.

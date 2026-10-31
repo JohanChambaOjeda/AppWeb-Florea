@@ -140,6 +140,10 @@ export type OfferContact = {
     companyName: string;
     phone: string;
     whatsappUrl: string;
+    /** El trato que abrió el contacto. */
+    dealId: number | null;
+    /** Si esta empresa ya calificó, no se le vuelve a pedir. */
+    rated: boolean;
 };
 
 type OfferBase = {
