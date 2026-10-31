@@ -23,6 +23,11 @@ Convenciones de esta guía:
 | SSL activo y HTTPS forzado        | hPanel → Seguridad → SSL                 |
 | Un repositorio Git remoto privado | GitHub/GitLab (ver paso 2)               |
 
+**HTTPS no es opcional.** Desde la semana 3 Florea es una app instalable
+con avisos push, y tanto el service worker como las notificaciones **solo
+funcionan sobre HTTPS**. Sin certificado, la app se ve pero no se instala
+ni avisa de nada.
+
 **Por qué PHP 8.3+:** `composer.json` exige `"php": "^8.3"` y el código usa
 enums tipados y propiedades readonly. Con 8.2 no arranca.
 
@@ -190,6 +195,11 @@ CACHE_STORE=database
 # Admin de Florea: sin estos dos, AdminSeeder falla a propósito
 ADMIN_PHONE=0999999999
 ADMIN_PASSWORD=una-contraseña-larga-y-distinta-a-la-de-local
+
+# Avisos push. Se generan en el paso 4.1, NO se copian de local.
+VAPID_SUBJECT="mailto:hola@florea.ec"
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
 ```
 
 Tres avisos que cuestan caro si se pasan por alto:
@@ -238,6 +248,38 @@ php -d memory_limit=-1 composer.phar install --no-dev --optimize-autoloader
 > **Nota:** `composer install` lanza `package:discover` al final. Si `.env`
 > todavía no existe, avisa. Por eso el `.env` va antes (paso 3).
 
+### 4.1 Llaves de los avisos push (VAPID)
+
+Cada entorno necesita **su propio par**. Las de tu máquina no sirven aquí: si
+las reutilizas, los navegadores que se suscribieron en local dejan de recibir
+avisos y los de producción nunca los reciben.
+
+```bash
+cd $APP
+php artisan webpush:vapid
+```
+
+El comando escribe las dos llaves en el `.env`. Compruébalo sin imprimir los
+valores:
+
+```bash
+php artisan tinker --execute='
+    foreach (["subject","public_key","private_key"] as $k) {
+        printf("%-12s %d caracteres%s", $k, strlen((string) config("webpush.vapid.$k")), PHP_EOL);
+    }'
+```
+
+Debe decir **87** caracteres la pública y **43** la privada: son las medidas de
+un par P-256. Si sale 0, el `.env` quedó mal.
+
+> **Ojo con el `.env`:** si la última línea no termina en salto de línea, el
+> comando pega la llave detrás de ella y la rompe. Si ves algo como
+> `ADMIN_PASSWORD=xVAPID_PUBLIC_KEY=...`, sepáralo a mano. Nos pasó en local.
+
+> **Si falla con "Unable to create the key":** a PHP le falta el archivo
+> `openssl.cnf`. En Linux no suele pasar; si pasa, se arregla con
+> `OPENSSL_CONF=/etc/ssl/openssl.cnf php artisan webpush:vapid`.
+
 ---
 
 ## 5. El frontend se compila en local
@@ -275,6 +317,12 @@ scp -r public/build u123456789@florea.ec:domains/florea.ec/florea/public/
 rehacer el build y volver a subir `public/build`. Si te olvidas, la web sigue
 sirviendo la versión anterior de la interfaz.
 
+> **Y hay algo peor que quedarse con la versión vieja:** la vista raíz carga un
+> chunk distinto por cada pantalla, así que una pantalla **nueva** sin compilar
+> devuelve un **error 500**, no una versión antigua. La suite tiene un test
+> (`PwaTest`) que compara las páginas con el manifiesto y avisa antes de que
+> eso llegue al servidor, pero solo si corres los tests.
+
 ---
 
 ## 6. Base de datos: migraciones y datos iniciales
@@ -286,6 +334,10 @@ php artisan migrate --force
 
 `--force` es obligatorio en producción: sin él, Artisan pide confirmación
 interactiva y en un cron o script se queda colgado.
+
+Las migraciones cubren las tres semanas: catálogos, empresas, publicaciones,
+ofertas, fotos, tratos, calificaciones, notificaciones, suscripciones push,
+reputación, comentarios y la aceptación de términos.
 
 ### Los seeders de producción
 
@@ -420,11 +472,13 @@ Si el `php` del sistema no es 8.3+, pon la ruta completa:
 
 De esa única línea salen tres tareas (definidas en `routes/console.php`):
 
-| Tarea                                                  | Cada    | Para qué                                                                        |
-| ------------------------------------------------------ | ------- | ------------------------------------------------------------------------------- |
-| `listings:expire`                                      | 5 min   | Vence publicaciones pasadas de plazo y rechaza sus ofertas pendientes (regla 7) |
-| `queue:work --stop-when-empty --tries=3 --max-time=50` | 1 min   | Procesa la cola y **termina solo**                                              |
-| `queue:prune-failed --hours=168`                       | semanal | Que no se acumulen trabajos fallidos                                            |
+| Tarea                                                  | Cada         | Para qué                                                                        |
+| ------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------- |
+| `queue:work --stop-when-empty --tries=3 --max-time=50` | 1 min        | Procesa la cola (de ahí salen los avisos push) y **termina solo**               |
+| `listings:expire`                                      | 5 min        | Vence publicaciones pasadas de plazo y rechaza sus ofertas pendientes (regla 7) |
+| `push:digest`                                          | 5 min        | Agrupa en un aviso los pedidos que llegaron seguidos                            |
+| `ratings:request`                                      | diario 09:00 | Pide calificar los tratos del día anterior                                      |
+| `queue:prune-failed --hours=168`                       | semanal      | Que no se acumulen trabajos fallidos                                            |
 
 ### Cómo funciona la cola sin un proceso permanente
 
@@ -440,9 +494,13 @@ evita que se pisen dos.
 En la práctica: **un aviso a productores tarda hasta un minuto en salir.**
 Para este negocio es de sobra.
 
-Lo que pasa por la cola hoy es el aviso a los productores cuando se publica
-un "Busco" que coincide con sus variedades. Las demás notificaciones (oferta
-recibida, aceptada, rechazada) se escriben al instante, sin cola.
+Por la cola pasan **todos los avisos push**. Las notificaciones de la campana
+se escriben al instante (son una fila en la base); el push espera al siguiente
+minuto de cron, porque hablar con los servidores de Google o Apple tarda
+segundos y nadie debería esperar eso mientras oferta.
+
+**Si el cron no está puesto, la campana funciona y el push no.** Es el fallo
+más fácil de pasar por alto, porque la app parece estar bien.
 
 ### Comprobar que el cron funciona
 
@@ -450,6 +508,8 @@ recibida, aceptada, rechazada) se escriben al instante, sin cola.
 cd $APP
 php artisan schedule:list      # las tres tareas con su próxima ejecución
 php artisan listings:expire    # a mano: dice cuántas venció
+php artisan push:digest        # manda los resúmenes agrupados
+php artisan ratings:request    # pide calificar los tratos de ayer
 php artisan queue:work --stop-when-empty   # vacía la cola ahora
 ```
 
@@ -487,6 +547,13 @@ Y en el navegador:
 - [ ] Aceptas la oferta y aparece el celular y el botón de WhatsApp
 - [ ] El enlace de WhatsApp abre con el mensaje ya escrito
 - [ ] La campana muestra las notificaciones
+- [ ] Calificas el trato y aparece la reputación de la otra empresa
+- [ ] El menú de Chrome ofrece **"Instalar aplicación"**
+- [ ] Instalada, la app abre sin barra de navegador
+- [ ] Activas los avisos y llega un push de prueba (publica un "Busco" con una
+      variedad del productor y mira si le vibra el celular)
+- [ ] En modo avión, la app muestra la pantalla **"Sin conexión"**
+- [ ] `/admin/metrics` carga aunque no haya datos
 - [ ] Todo lo anterior **desde un celular de verdad**, con datos móviles
 
 Lo último no es un detalle: la app se usa a 375 px, en un invernadero, con
@@ -506,7 +573,8 @@ Si alguno responde `200`, la raíz del sitio está mal puesta: vuelve al paso 1.
 
 ## 11. Despliegues siguientes
 
-Con la estructura ya montada, actualizar son estos pasos:
+Con la estructura ya montada, un despliegue son **dos comandos**: uno en tu
+máquina y otro en el servidor.
 
 ```bash
 # 1. En tu máquina: compilar y subir el frontend
@@ -515,66 +583,66 @@ rsync -avz --delete public/build/ u123456789@florea.ec:domains/florea.ec/florea/
 
 # 2. En el servidor
 ssh u123456789@florea.ec
-cd ~/domains/florea.ec/florea
-
-php artisan down --render="errors::503"     # opcional, si hay migraciones
-git pull origin main
-composer install --no-dev --optimize-autoloader
-php artisan migrate --force
-php artisan optimize                        # config + rutas + vistas
-php artisan up
+cd ~/domains/florea.ec/florea && ./deploy.sh
 ```
 
-Conviene dejarlo en un script, `$APP/deploy.sh`:
+El `deploy.sh` del repositorio pone la app en mantenimiento, baja el código,
+instala dependencias, migra, rehace el enlace de storage, recachea y te
+enseña `php artisan about` para que compruebes que quedó bien. Si algo falla
+a mitad, **vuelve a levantar la app igual** en vez de dejarla caída.
 
-```bash
-#!/usr/bin/env bash
-set -e   # para en el primer error, para no dejar el sitio a medias
-
-cd "$(dirname "$0")"
-
-php artisan down --render="errors::503" || true
-git pull origin main
-composer install --no-dev --optimize-autoloader
-php artisan migrate --force
-php artisan optimize
-php artisan up
-
-echo "Listo. Recuerda subir public/build si cambió el frontend."
-```
+La primera vez hay que darle permiso de ejecución:
 
 ```bash
 chmod +x deploy.sh
-./deploy.sh
 ```
+
+Y si el `php` del sistema no es 8.3+, pásale la ruta:
+
+```bash
+PHP=/opt/alt/php83/usr/bin/php ./deploy.sh
+```
+
+> **El orden importa.** Primero el frontend, después el backend. Si subes el
+> código nuevo sin el `public/build` nuevo, las pantallas que se añadieron en
+> ese cambio devuelven un 500 hasta que llegue el `rsync`.
 
 ---
 
 ## 12. Problemas típicos
 
-| Síntoma                                        | Causa y arreglo                                                                                             |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Página en blanco o error 500                   | Mira `storage/logs/laravel.log`. Lo más común: permisos (paso 8) o `APP_KEY` sin generar                    |
-| "Vite manifest not found"                      | Falta `public/build` en el servidor: paso 5                                                                 |
-| Las miniaturas de las fotos salen roto         | Falta `php artisan storage:link` (paso 7), o `APP_URL` mal puesta                                           |
-| Cambié `.env` y no pasa nada                   | Falta `php artisan config:cache` (paso 8)                                                                   |
-| Los avisos a productores no llegan             | El cron no está puesto o apunta a un PHP viejo (paso 9). Pruébalo a mano con `queue:work --stop-when-empty` |
-| Las publicaciones no vencen                    | Lo mismo: el cron. Compruébalo con `php artisan listings:expire`                                            |
-| Los enlaces salen en `http://` y no `https://` | `APP_URL` con `https`, y si sigue, el proxy de Hostinger: configura `trustProxies` en `bootstrap/app.php`   |
-| "could not find driver"                        | Falta la extensión `pdo_mysql` en la versión de PHP elegida: hPanel → Configuración de PHP → Extensiones    |
-| Las fotos no se suben                          | Falta la extensión `gd` (la usa `intervention/image`). Mírala en el mismo sitio                             |
-| `413` al subir una foto                        | `upload_max_filesize` y `post_max_size` por debajo de 12 MB: hPanel → Configuración de PHP                  |
+| Síntoma                                        | Causa y arreglo                                                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Página en blanco o error 500                   | Mira `storage/logs/laravel.log`. Lo más común: permisos (paso 8) o `APP_KEY` sin generar                                                   |
+| "Vite manifest not found"                      | Falta `public/build` en el servidor: paso 5                                                                                                |
+| Las miniaturas de las fotos salen roto         | Falta `php artisan storage:link` (paso 7), o `APP_URL` mal puesta                                                                          |
+| Cambié `.env` y no pasa nada                   | Falta `php artisan config:cache` (paso 8)                                                                                                  |
+| Los avisos a productores no llegan             | El cron no está puesto o apunta a un PHP viejo (paso 9). Pruébalo a mano con `queue:work --stop-when-empty`                                |
+| Las publicaciones no vencen                    | Lo mismo: el cron. Compruébalo con `php artisan listings:expire`                                                                           |
+| Los enlaces salen en `http://` y no `https://` | `APP_URL` con `https`, y si sigue, el proxy de Hostinger: configura `trustProxies` en `bootstrap/app.php`                                  |
+| "could not find driver"                        | Falta la extensión `pdo_mysql` en la versión de PHP elegida: hPanel → Configuración de PHP → Extensiones                                   |
+| Las fotos no se suben                          | Falta la extensión `gd` (la usa `intervention/image`). Mírala en el mismo sitio                                                            |
+| `413` al subir una foto                        | `upload_max_filesize` y `post_max_size` por debajo de 12 MB: hPanel → Configuración de PHP                                                 |
+| Chrome no ofrece "Instalar aplicación"         | Sin HTTPS no hay instalación. Comprueba también que `/manifest.webmanifest` y `/sw.js` responden 200                                       |
+| Instalé la app y sigue mostrando lo viejo      | El service worker guarda la versión anterior. Cierra la app, vuelve a abrirla, y si sigue: Chrome → Configuración del sitio → Borrar datos |
+| La campana avisa pero el celular no vibra      | Push sin cron: el aviso está en la cola esperando. Es el fallo más común (paso 9)                                                          |
+| "No se pudieron activar los avisos"            | Falta `bcmath`, o las llaves VAPID están vacías o mal copiadas (paso 4.1)                                                                  |
+| Activé los avisos y dejaron de llegar          | Cambiaron las llaves VAPID. Las suscripciones viejas ya no valen: cada quien tiene que volver a activarlos                                 |
+| Una pantalla nueva da 500 y las demás van      | Falta su chunk en `public/build`: subiste el código sin el frontend (paso 5)                                                               |
+| `/admin/metrics` sale en blanco                | Normal si todavía no hay tratos. Con datos, mira el log                                                                                    |
 
 ### Extensiones de PHP que hacen falta
 
 En hPanel → Avanzado → Configuración de PHP → Extensiones, comprueba:
 
 `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`,
-`bcmath`, `fileinfo`, **`gd`** (fotos) y `exif` (orientación de las fotos del
-celular).
+`fileinfo`, **`gd`**, **`exif`** y **`bcmath`**.
 
-Sin `gd` no se puede ofertar en un "Busco", porque la foto es obligatoria.
-Sin `exif`, las fotos tomadas en vertical se guardan de lado.
+Las tres últimas no son opcionales en Florea:
+
+- Sin **`gd`** no se puede ofertar en un "Busco", porque la foto es obligatoria.
+- Sin **`exif`**, las fotos tomadas en vertical se guardan de lado.
+- Sin **`bcmath`** (o `gmp`) no funciona el cifrado de los avisos push.
 
 ---
 
@@ -596,3 +664,34 @@ tar czf florea-fotos-$(date +%F).tar.gz -C $APP/storage/app/public photos
 
 Bájate los dos archivos a tu máquina. Las fotos no se pueden recuperar de
 ninguna otra parte.
+
+### Copias automáticas de Hostinger
+
+hPanel → Archivos → Copias de seguridad. Activa las diarias y comprueba que
+cubren **la base de datos y los archivos**: las fotos de las ofertas viven en
+`storage/app/public/photos`, que es disco, no base.
+
+### Cómo restaurar
+
+**Desde el panel:** hPanel → Copias de seguridad → elige la fecha → Restaurar.
+Es lo más rápido y lo que vas a querer casi siempre.
+
+**A mano, desde tus copias:**
+
+```bash
+cd $APP
+php artisan down --render="errors::503"
+
+mysql -u u123456789_florea -p u123456789_florea < florea-2026-11-10.sql
+tar xzf florea-fotos-2026-11-10.tar.gz -C $APP/storage/app/public
+
+php artisan optimize
+php artisan up
+```
+
+Después de restaurar, comprueba que `php artisan about` sigue diciendo
+`LINKED` en Storage: si se restauró la carpeta por encima, el enlace puede
+haberse perdido y hay que rehacer `php artisan storage:link`.
+
+> **Pruébalo antes del piloto.** Una copia que nunca se ha restaurado no es una
+> copia, es una esperanza.
