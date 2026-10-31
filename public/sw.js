@@ -96,3 +96,63 @@ self.addEventListener('fetch', (event) => {
 
     // Todo lo demás (incluidas las fotos de las ofertas) va directo a la red.
 });
+
+/*
+ * Avisos push.
+ *
+ * El payload lo arma WebPushNotification en el servidor: title, body, icon,
+ * badge, vibrate, tag y data.url.
+ */
+self.addEventListener('push', (event) => {
+    if (!event.data) {
+        return;
+    }
+
+    let payload = {};
+
+    try {
+        payload = event.data.json();
+    } catch {
+        payload = { title: 'Florea', body: event.data.text() };
+    }
+
+    event.waitUntil(
+        self.registration.showNotification(payload.title || 'Florea', {
+            body: payload.body || '',
+            icon: payload.icon || '/icons/icon-192.png',
+            badge: payload.badge || '/icons/icon-192.png',
+            vibrate: payload.vibrate || [200, 100, 200],
+            // Con la misma etiqueta, un aviso nuevo reemplaza al anterior en
+            // vez de apilarse: nadie quiere seis avisos del mismo pedido.
+            tag: payload.tag || undefined,
+            data: payload.data || {},
+            lang: 'es',
+        }),
+    );
+});
+
+/*
+ * Al tocar el aviso: si la app ya está abierta se reutiliza esa pestaña y se
+ * navega; si no, se abre una. Así no se acumulan pestañas de Florea.
+ */
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const url = event.notification.data?.url || '/dashboard';
+
+    event.waitUntil(
+        self.clients
+            .matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clients) => {
+                for (const client of clients) {
+                    if ('focus' in client) {
+                        client.navigate(url);
+
+                        return client.focus();
+                    }
+                }
+
+                return self.clients.openWindow(url);
+            }),
+    );
+});

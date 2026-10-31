@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { InstallBanner } from '@/components/install-banner';
 import { ListingCard } from '@/components/listing-card';
+import { PushCard } from '@/components/push-card';
 import { OptionButtons } from '@/components/option-buttons';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -79,6 +80,7 @@ export default function Dashboard({
 
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
                 <InstallBanner />
+                <PushCard />
 
                 {/* Publicar */}
                 <div className="grid grid-cols-2 gap-3">

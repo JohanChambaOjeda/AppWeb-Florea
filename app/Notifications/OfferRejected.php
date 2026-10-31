@@ -3,13 +3,15 @@
 namespace App\Notifications;
 
 use App\Models\Offer;
+use App\Support\Pushable;
+use App\Support\PushMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Le llega a quien ofertó cuando le rechazan la oferta, o cuando quien
  * publicó cerró con "Ya completé" y las ofertas que quedaban se rechazan.
  */
-class OfferRejected extends Notification
+class OfferRejected extends Notification implements Pushable
 {
     public function __construct(
         private readonly Offer $offer,
@@ -41,5 +43,19 @@ class OfferRejected extends Notification
                 ? "{$listing->company->name} ya completó su pedido."
                 : "{$listing->company->name} no tomó tu oferta esta vez.",
         ];
+    }
+
+    public function toPush(): PushMessage
+    {
+        $company = $this->offer->listing->company->name;
+
+        return new PushMessage(
+            title: 'Tu oferta no quedó',
+            body: $this->becauseListingClosed
+                ? $company.' ya completó su pedido'
+                : $company.' no tomó tu oferta esta vez',
+            url: route('my-offers.index'),
+            tag: 'offer-'.$this->offer->id,
+        );
     }
 }

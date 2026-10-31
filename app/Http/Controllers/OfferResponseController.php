@@ -7,6 +7,7 @@ use App\Models\Deal;
 use App\Models\Offer;
 use App\Notifications\OfferAccepted;
 use App\Notifications\OfferRejected;
+use App\Support\Notifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -42,7 +43,7 @@ class OfferResponseController extends Controller
             ]);
         });
 
-        $offer->user->notify(new OfferAccepted($offer));
+        Notifier::send($offer->user, new OfferAccepted($offer));
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -58,7 +59,7 @@ class OfferResponseController extends Controller
 
         $offer->update(['status' => OfferStatus::Rejected]);
 
-        $offer->user->notify(new OfferRejected($offer));
+        Notifier::send($offer->user, new OfferRejected($offer));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Oferta rechazada.']);
 

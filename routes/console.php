@@ -31,5 +31,11 @@ Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')
     ->everyMinute()
     ->withoutOverlapping();
 
+// Agrupa en un solo aviso los pedidos que llegaron seguidos, para no
+// vibrarle el celular seis veces seguidas a un productor.
+Schedule::command('push:digest')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
 // Los trabajos fallidos no se acumulan para siempre.
 Schedule::command('queue:prune-failed --hours=168')->weekly();

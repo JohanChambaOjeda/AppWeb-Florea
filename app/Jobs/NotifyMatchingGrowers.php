@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Listing;
 use App\Models\Variety;
 use App\Notifications\MatchingListingPublished;
+use App\Support\GrowerPush;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
@@ -62,7 +63,12 @@ class NotifyMatchingGrowers implements ShouldQueue
             );
 
             foreach ($company->users as $user) {
+                // La campana, siempre.
                 $user->notify(new MatchingListingPublished($this->listing, $names));
+
+                // El push, con el freno anti-spam: el primero al instante y
+                // los siguientes agrupados (ver GrowerPush).
+                GrowerPush::queue($user, $this->listing);
             }
         }
     }

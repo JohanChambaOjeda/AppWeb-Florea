@@ -59,6 +59,13 @@ class HandleInertiaRequests extends Middleware
             'notifications' => $user !== null
                 ? Inertia::optional(fn () => NotificationPresenter::latestFor($user))
                 : null,
+            // Avisos push: la llave pública VAPID la necesita el navegador
+            // para suscribirse. Es pública por diseño; la privada se queda
+            // en el servidor.
+            'push' => [
+                'vapidPublicKey' => config('webpush.vapid.public_key'),
+                'subscribed' => $user !== null && $user->pushSubscriptions()->exists(),
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

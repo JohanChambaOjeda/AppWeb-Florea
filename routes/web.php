@@ -8,6 +8,7 @@ use App\Http\Controllers\MyVarietiesController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OfferResponseController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,10 @@ Route::inertia('install', 'install')->name('install');
 
 Route::middleware('auth')->group(function () {
     Route::get('account/pending', AccountPendingController::class)->name('account.pending');
+
+    // Avisos push: una suscripcion por dispositivo.
+    Route::post('push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+    Route::delete('push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 
     // La campana vive en la barra superior de todas las pantallas.
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');

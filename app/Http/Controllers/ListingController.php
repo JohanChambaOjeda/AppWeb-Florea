@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\Variety;
 use App\Notifications\OfferRejected;
 use App\Support\ListingPresenter;
+use App\Support\Notifier;
 use App\Support\OfferPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -111,7 +112,7 @@ class ListingController extends Controller
         });
 
         foreach ($rejected as $offer) {
-            $offer->user->notify(new OfferRejected($offer, becauseListingClosed: true));
+            Notifier::send($offer->user, new OfferRejected($offer, becauseListingClosed: true));
         }
 
         Inertia::flash('toast', [

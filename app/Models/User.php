@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 /**
  * @property int $id
@@ -24,6 +25,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $email
  * @property UserRole $role
  * @property Carbon|null $last_seen_at
+ * @property Carbon|null $push_window_until
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
@@ -39,7 +41,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, HasPushSubscriptions, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.
@@ -53,6 +55,7 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'role' => UserRole::class,
             'last_seen_at' => 'datetime',
+            'push_window_until' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }

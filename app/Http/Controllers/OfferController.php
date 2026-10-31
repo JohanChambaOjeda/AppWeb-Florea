@@ -10,6 +10,7 @@ use App\Models\Listing;
 use App\Models\Offer;
 use App\Notifications\OfferReceived;
 use App\Support\ListingPresenter;
+use App\Support\Notifier;
 use App\Support\OfferPresenter;
 use App\Support\PhotoStorage;
 use Illuminate\Http\RedirectResponse;
@@ -96,7 +97,7 @@ class OfferController extends Controller
         });
 
         if ($isNew) {
-            $listing->user->notify(new OfferReceived($offer));
+            Notifier::send($listing->user, new OfferReceived($offer));
         }
 
         Inertia::flash('toast', [

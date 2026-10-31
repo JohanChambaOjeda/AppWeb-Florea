@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Offer;
+use App\Support\Pushable;
+use App\Support\PushMessage;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -11,7 +13,7 @@ use Illuminate\Notifications\Notification;
  * No guarda el celular: el contacto se lee en la pantalla, que lo arma
  * OfferPresenter comprobando que el trato exista.
  */
-class OfferAccepted extends Notification
+class OfferAccepted extends Notification implements Pushable
 {
     public function __construct(private readonly Offer $offer) {}
 
@@ -38,5 +40,15 @@ class OfferAccepted extends Notification
             'title' => '¡Te aceptaron la oferta!',
             'body' => "{$listing->company->name} aceptó tu oferta. Ya puedes ver su celular y coordinar la entrega.",
         ];
+    }
+
+    public function toPush(): PushMessage
+    {
+        return new PushMessage(
+            title: '¡Aceptaron tu oferta!',
+            body: $this->offer->listing->company->name.' — toca para ver el contacto',
+            url: route('my-offers.index'),
+            tag: 'offer-'.$this->offer->id,
+        );
     }
 }

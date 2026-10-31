@@ -7,6 +7,7 @@ use App\Enums\OfferStatus;
 use App\Models\Listing;
 use App\Notifications\ListingExpired;
 use App\Notifications\OfferRejected;
+use App\Support\Notifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -42,10 +43,10 @@ class ExpireListings extends Command
                             ->update(['status' => OfferStatus::Rejected]);
                     });
 
-                    $listing->user->notify(new ListingExpired($listing));
+                    Notifier::send($listing->user, new ListingExpired($listing));
 
                     foreach ($pending as $offer) {
-                        $offer->user->notify(new OfferRejected($offer, becauseListingClosed: true));
+                        Notifier::send($offer->user, new OfferRejected($offer, becauseListingClosed: true));
                         $rejected++;
                     }
 
