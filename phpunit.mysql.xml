@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    La misma suite, pero sobre MySQL 8 en vez de SQLite.
+
+    Producción es MySQL 8 en Hostinger. SQLite en memoria es lo que usamos todo
+    el día porque tarda 14 segundos en vez de 70, pero hay cosas que solo
+    aparecen en MySQL: los límites de las columnas, el largo de los índices
+    únicos, ONLY_FULL_GROUP_BY y el modo estricto.
+
+    Esta configuración es para correr la suite ANTES DE CADA DESPLIEGUE:
+
+        composer test:mysql
+
+    Hace falta que el MySQL de Laragon esté levantado en el puerto 3306 y que
+    exista la base `florea_testing` (vacía: la suite la migra desde cero en
+    cada corrida). Ojo: el MariaDB de XAMPP escucha en el 3307 y no sirve.
+
+    force="true" en las dos variables de base es lo que hace que ganen a lo que
+    diga el .env.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_DATABASE" value="florea_testing" force="true"/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

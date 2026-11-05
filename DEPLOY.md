@@ -577,14 +577,23 @@ Con la estructura ya montada, un despliegue son **dos comandos**: uno en tu
 máquina y otro en el servidor.
 
 ```bash
-# 1. En tu máquina: compilar y subir el frontend
+# 1. En tu máquina: la suite sobre MySQL, como producción
+composer test:mysql
+
+# 2. Compilar y subir el frontend
 npm run build
 rsync -avz --delete public/build/ u123456789@florea.ec:domains/florea.ec/florea/public/build/
 
-# 2. En el servidor
+# 3. En el servidor
 ssh u123456789@florea.ec
 cd ~/domains/florea.ec/florea && ./deploy.sh
 ```
+
+> **Por qué el paso 1.** El día a día se prueba sobre SQLite porque tarda 14
+> segundos en vez de 43, pero SQLite no se queja de lo que MySQL rechaza: los
+> largos de las columnas, los índices únicos demasiado largos,
+> `ONLY_FULL_GROUP_BY` y el modo estricto. Una migración que pasa en SQLite y
+> revienta en MySQL te deja la app a medio migrar, y eso se arregla a mano.
 
 El `deploy.sh` del repositorio pone la app en mantenimiento, baja el código,
 instala dependencias, migra, rehace el enlace de storage, recachea y te

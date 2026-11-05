@@ -49,8 +49,8 @@ Cliente que paga: la vendedora de la poscosecha (suscripción mensual a partir d
 
 - PHP CLI: el del PATH es `C:\xampp\php\php.exe` (8.4). Laragon tiene PHP 8.3 sin configurar para CLI.
 - Base de datos: MySQL 8.4 de Laragon en el puerto 3306 (base `florea`). Ojo: XAMPP corre un MariaDB 10.4 como servicio en el puerto 3307; no usarlo.
-- Tests: Pest con SQLite en memoria (ver `phpunit.xml`). Para correrlos sobre MySQL 8 (como producción), usar la base `florea_testing`:
-  `DB_CONNECTION=mysql DB_DATABASE=florea_testing php vendor/bin/pest`
+- Tests: Pest con SQLite en memoria (ver `phpunit.xml`), ~14 s. Para correr la misma suite sobre MySQL 8 como en producción: `composer test:mysql` (ver `phpunit.mysql.xml`), ~43 s. Necesita el MySQL de Laragon levantado y la base `florea_testing`. **Hacerlo antes de cada despliegue:** SQLite no ve los límites de las columnas, el largo de los índices únicos, `ONLY_FULL_GROUP_BY` ni el modo estricto.
+- El MySQL de Laragon **no es un servicio**: hay que levantarlo (Laragon → Start, o `C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysqld.exe --defaults-file=C:\laragon\bin\mysql\mysql-8.4.3-winx64\my.ini`). Datadir en `C:\laragon\data\mysql-8.4`.
 - Tras cambiar rutas: `php artisan wayfinder:generate --with-form` (genera `resources/js/routes` y `resources/js/actions`, que no van a git).
 - Datos demo: `php artisan migrate:fresh --seed` (el DemoSeeder solo corre en local). Usuarios demo con contraseña `florea2026`; admin desde `ADMIN_PHONE` / `ADMIN_PASSWORD`.
 - Fotos de ofertas: hace falta `php artisan storage:link` una vez, o las miniaturas salen roto.
