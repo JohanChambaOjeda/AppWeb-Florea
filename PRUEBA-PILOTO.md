@@ -108,7 +108,7 @@ hace la otra, la segunda ya no está probando nada.
 
 **Lo que le dices, textual:**
 
-1. "Entra a florea.ec y crea tu cuenta." _(No digas cómo. Solo dale la
+1. "Entra a floreaec.com y crea tu cuenta." _(No digas cómo. Solo dale la
    dirección, escrita, no dictada.)_
 2. "Haz que la app quede en tu pantalla de inicio, como WhatsApp."
 3. "Haz que te avisen al celular cuando pase algo en Florea."
