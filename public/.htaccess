@@ -1,3 +1,13 @@
+# El tipo MIME de los .js tiene que ser uno de los que la especificación
+# acepta para módulos. Hostinger sirve "application/x-javascript", que NO
+# está en esa lista: el navegador descarga el archivo, ve ese tipo y se
+# niega a ejecutarlo. La app carga el HTML y se queda en blanco, sin fallo
+# visible en el servidor (responde 200). Nos costó una tarde encontrarlo.
+<IfModule mod_mime.c>
+    AddType text/javascript .js
+    AddType text/javascript .mjs
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

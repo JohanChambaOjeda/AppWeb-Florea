@@ -47,6 +47,16 @@ echo "==> Base de datos"
 echo "==> Enlace de storage (por si aún no existe)"
 "$PHP" artisan storage:link || true
 
+# scp desde Windows crea las carpetas nuevas en modo 700, porque Windows no
+# tiene permisos de Unix y el cliente se pone en lo más restrictivo. El
+# servidor web no puede entrar y devuelve 404 en todos los assets: la app
+# carga el HTML y se queda en blanco. Esto lo corrige en cada despliegue.
+echo "==> Permisos de public/build"
+if [ -d public/build ]; then
+    find public/build -type d -exec chmod 755 {} +
+    find public/build -type f -exec chmod 644 {} +
+fi
+
 echo "==> Cachés"
 "$PHP" artisan optimize
 
