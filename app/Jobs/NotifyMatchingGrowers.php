@@ -33,6 +33,12 @@ class NotifyMatchingGrowers implements ShouldQueue
             return;
         }
 
+        // Y solo los de poscosechas (regla 8). Un "Busco" de un productor es
+        // de antes de la regla, y ningún productor debe recibir aviso por él.
+        if ($this->listing->company->type !== CompanyType::Postharvest) {
+            return;
+        }
+
         $varietyIds = $this->listing->items()->pluck('variety_id')->unique();
 
         if ($varietyIds->isEmpty()) {

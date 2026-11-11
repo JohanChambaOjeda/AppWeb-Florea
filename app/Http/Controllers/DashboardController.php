@@ -33,7 +33,13 @@ class DashboardController extends Controller
         }
 
         $company = $user->company;
-        $tab = HomeTab::tryFrom((string) $request->query('tab')) ?? HomeTab::ForMe;
+
+        // Regla 8: cada tipo tiene dos pestañas, la suya y "Mías". Si pide
+        // la del otro tipo por URL, cae en la que le toca en vez de ver una
+        // lista vacía sin explicación.
+        $others = $this->othersTab($company);
+        $asked = HomeTab::tryFrom((string) $request->query('tab'));
+        $tab = $asked === HomeTab::Mine ? HomeTab::Mine : $others;
 
         // Un productor solo ve los pedidos de sus variedades, salvo que
         // encienda "Ver todos". Una poscosecha siempre los ve todos.
@@ -139,7 +145,12 @@ class DashboardController extends Controller
     }
 
     /**
-     * Publicaciones abiertas de otras empresas verificadas.
+     * Publicaciones abiertas de otras empresas verificadas, y del tipo que
+     * según la regla 8 publica eso.
+     *
+     * Lo segundo no sobra: quedan publicaciones de antes de la regla, como el
+     * "Busco" de un productor. Sin este filtro se las seguirían viendo otros
+     * productores, que es justo lo que no debe pasar.
      *
      * @return Builder<Listing>
      */
@@ -149,7 +160,7 @@ class DashboardController extends Controller
             ->open()
             ->where('kind', $kind)
             ->where('company_id', '!=', $company->id)
-            ->whereHas('company', fn (Builder $c) => $c->verified());
+            ->whereHas('company', fn (Builder $c) => $c->verified()->where('type', $kind->publishedBy()));
     }
 
     /**
@@ -166,6 +177,16 @@ class DashboardController extends Controller
     }
 
     /**
+     * La pestaña de "lo de los demás" según el tipo (regla 8): el productor
+     * ve los pedidos de poscosechas, la poscosecha ve la flor de productores.
+     * Cada uno solo tiene esa y "Mías".
+     */
+    private function othersTab(Company $company): HomeTab
+    {
+        return $company->isGrower() ? HomeTab::ForMe : HomeTab::Available;
+    }
+
+    /**
      * Números de las pestañas. El de "Mis publicaciones" son las ofertas sin
      * responder, que es lo que de verdad pide atención.
      *
@@ -173,9 +194,12 @@ class DashboardController extends Controller
      */
     private function tabCounts(Company $company, bool $showAll): array
     {
+        $others = $this->othersTab($company);
+
         return [
-            HomeTab::ForMe->value => $this->forMe($company, $showAll)->count(),
-            HomeTab::Available->value => $this->available($company, null, null)->count(),
+            $others->value => $others === HomeTab::ForMe
+                ? $this->forMe($company, $showAll)->count()
+                : $this->available($company, null, null)->count(),
             HomeTab::Mine->value => $company->listings()
                 ->whereHas('offers', fn (Builder $o) => $o->where('status', OfferStatus::Sent))
                 ->count(),

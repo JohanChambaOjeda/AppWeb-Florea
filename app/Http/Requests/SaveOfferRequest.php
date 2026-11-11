@@ -19,6 +19,19 @@ class SaveOfferRequest extends FormRequest
 {
     public const MAX_PHOTOS = 3;
 
+    /**
+     * La Policy va ANTES que la validación.
+     *
+     * Sin esto, quien no puede ofertar —el tipo que no le toca por la regla
+     * 8, su propia publicación, una ya cerrada— recibe "Pon el precio por
+     * tallo" en vez de un 403, y de paso se entera de cómo es el formulario
+     * de una publicación en la que no pinta nada.
+     */
+    public function authorize(): bool
+    {
+        return $this->user()?->can('offer', $this->listing()) ?? false;
+    }
+
     public function listing(): Listing
     {
         $listing = $this->route('listing');

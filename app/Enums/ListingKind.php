@@ -51,6 +51,18 @@ enum ListingKind: string
         return $this === self::Want;
     }
 
+    /**
+     * Quién publica esto (regla 8). Es el inverso de CompanyType::publishes(),
+     * y quien oferta es siempre el otro tipo.
+     */
+    public function publishedBy(): CompanyType
+    {
+        return match ($this) {
+            self::Want => CompanyType::Postharvest,
+            self::Have => CompanyType::Grower,
+        };
+    }
+
     public function expiryHours(): int
     {
         return (int) config("florea.expiry_hours.{$this->value}");

@@ -21,7 +21,15 @@ class StoreListingRequest extends FormRequest
         $max = (int) config('florea.custom_length.max');
 
         return [
-            'kind' => ['required', Rule::enum(ListingKind::class)],
+            // Regla 8: solo el tipo que le corresponde a su empresa. La
+            // Policy también lo comprueba (y devuelve 403); esto es para que
+            // el formulario dé un mensaje en vez de una pantalla de error.
+            'kind' => [
+                'required',
+                Rule::enum(ListingKind::class)->only([
+                    $this->user()->company->type->publishes(),
+                ]),
+            ],
 
             'items' => ['required', 'array', 'min:1', 'max:30'],
             'items.*.variety_id' => ['required', 'integer', 'exists:varieties,id,is_active,1'],

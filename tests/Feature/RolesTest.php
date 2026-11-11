@@ -1,0 +1,174 @@
+<?php
+
+use App\Enums\ListingKind;
+use App\Enums\ListingStatus;
+use App\Enums\OfferStatus;
+use App\Jobs\NotifyMatchingGrowers;
+use App\Models\Listing;
+use App\Models\Variety;
+use Illuminate\Support\Facades\Queue;
+
+/**
+ * REGLA 8: el productor vende y la poscosecha compra. Nunca al revés.
+ *
+ * Es la regla que más superficie toca —publicar, ofertar, el inicio y los
+ * avisos—, así que se prueba entera en un solo sitio.
+ */
+beforeEach(function () {
+    $this->variety = Variety::factory()->create(['name' => 'Freedom']);
+    $this->grower = growerUser($this->variety);
+    $this->postharvest = postharvestUser();
+});
+
+/** Payload mínimo y válido del formulario de publicación. */
+function rolePayload(string $kind, Variety $variety): array
+{
+    return [
+        'kind' => $kind,
+        'needed_by' => today()->toDateString(),
+        'items' => [[
+            'variety_id' => $variety->id,
+            'lengths' => [60],
+            'unit' => 'hb',
+        ]],
+    ];
+}
+
+// ── Publicar ────────────────────────────────────────────────────────────
+
+test('cada tipo solo publica lo suyo', function (string $who, string $kind, bool $allowed) {
+    $user = $who === 'grower' ? $this->grower : $this->postharvest;
+
+    $this->actingAs($user)
+        ->post(route('listings.store'), rolePayload($kind, $this->variety));
+
+    expect(Listing::where('kind', $kind)->count())->toBe($allowed ? 1 : 0);
+})->with([
+    'el productor publica "Disponible"' => ['grower', 'have', true],
+    'el productor NO publica "Busco"' => ['grower', 'want', false],
+    'la poscosecha publica "Busco"' => ['postharvest', 'want', true],
+    'la poscosecha NO publica "Disponible"' => ['postharvest', 'have', false],
+]);
+
+test('el formulario se abre siempre en el tipo que le toca', function () {
+    // Aunque pida el otro por URL, lo devuelve al inicio con una explicación.
+    $this->actingAs($this->grower)
+        ->get(route('listings.create', ['kind' => 'want']))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('info', 'Como productor, aquí publicas la flor que tienes disponible.');
+
+    $this->actingAs($this->postharvest)
+        ->get(route('listings.create', ['kind' => 'have']))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('info', 'Como poscosecha, aquí publicas la flor que te falta.');
+
+    // Y sin pedir nada, entra sin problema.
+    $this->actingAs($this->grower)
+        ->get(route('listings.create'))
+        ->assertOk();
+});
+
+test('no se puede duplicar una publicación que ya no le corresponde', function () {
+    // Un "Busco" de un productor, de antes de la regla.
+    $stale = listingFrom($this->grower, ListingKind::Want, [$this->variety]);
+
+    $this->actingAs($this->grower)
+        ->get(route('listings.create', ['from' => $stale->id]))
+        ->assertForbidden();
+});
+
+// ── Ofertar ─────────────────────────────────────────────────────────────
+
+test('solo oferta quien debe, en lo que debe', function () {
+    $want = listingFrom($this->postharvest, ListingKind::Want, [$this->variety]);
+    $have = listingFrom($this->grower, ListingKind::Have, [$this->variety]);
+
+    // Lo que sí: el productor vende en un "Busco", la poscosecha compra
+    // en un "Disponible".
+    expect($this->grower->can('offer', $want))->toBeTrue()
+        ->and($this->postharvest->can('offer', $have))->toBeTrue();
+
+    // Lo que no: cada uno en la publicación del otro tipo.
+    expect($this->grower->can('offer', $have))->toBeFalse()
+        ->and($this->postharvest->can('offer', $want))->toBeFalse();
+});
+
+test('nadie oferta en un "Busco" de un productor', function () {
+    // Publicación de antes de la regla: no la oferta ni el otro tipo.
+    $stale = listingFrom($this->grower, ListingKind::Want, [$this->variety]);
+    $otherGrower = growerUser($this->variety);
+
+    expect($this->postharvest->can('offer', $stale))->toBeFalse()
+        ->and($otherGrower->can('offer', $stale))->toBeFalse();
+
+    $this->actingAs($this->postharvest)
+        ->post(route('offers.save', $stale), [
+            'items' => [[
+                'listing_item_id' => $stale->items->first()->id,
+                'quantity' => 3,
+                'unit' => 'hb',
+                'length' => 60,
+            ]],
+            'delivery' => 'pickup',
+        ])
+        ->assertForbidden();
+});
+
+// ── Avisos ──────────────────────────────────────────────────────────────
+
+test('el aviso de nuevo pedido solo sale por "Busco" de poscosechas', function () {
+    Queue::fake();
+
+    $job = new NotifyMatchingGrowers(
+        listingFrom($this->grower, ListingKind::Want, [$this->variety]),
+    );
+
+    $job->handle();
+
+    // El productor con esa variedad no recibe nada por un "Busco" ajeno
+    // que no es de una poscosecha.
+    expect($this->grower->notifications()->count())->toBe(0);
+});
+
+// ── Limpiar lo que quedó de antes ───────────────────────────────────────
+
+test('florea:fix-roles encuentra solo lo que rompe la regla', function () {
+    $ok1 = listingFrom($this->postharvest, ListingKind::Want, [$this->variety]);
+    $ok2 = listingFrom($this->grower, ListingKind::Have, [$this->variety]);
+    $bad = listingFrom($this->grower, ListingKind::Want, [$this->variety]);
+
+    $this->artisan('florea:fix-roles')
+        ->expectsOutputToContain('Publicaciones que rompen la regla: 1')
+        ->assertSuccessful();
+
+    // Sin --apply no toca nada.
+    expect($bad->fresh()->status)->toBe(ListingStatus::Open);
+
+    $this->artisan('florea:fix-roles --apply')
+        ->expectsConfirmation('¿Cerrar estas publicaciones y rechazar sus ofertas pendientes?', 'yes')
+        ->assertSuccessful();
+
+    expect($bad->fresh()->status)->toBe(ListingStatus::Closed)
+        ->and($ok1->fresh()->status)->toBe(ListingStatus::Open)
+        ->and($ok2->fresh()->status)->toBe(ListingStatus::Open);
+});
+
+test('florea:fix-roles rechaza las ofertas pendientes de lo que cierra', function () {
+    $bad = listingFrom($this->grower, ListingKind::Want, [$this->variety]);
+    $offer = offerOn($bad, postharvestUser());
+
+    $this->artisan('florea:fix-roles --apply')
+        ->expectsConfirmation('¿Cerrar estas publicaciones y rechazar sus ofertas pendientes?', 'yes')
+        ->assertSuccessful();
+
+    expect($offer->fresh()->status)->toBe(OfferStatus::Rejected);
+});
+
+test('florea:fix-roles no dice nada cuando todo está en orden', function () {
+    listingFrom($this->postharvest, ListingKind::Want, [$this->variety]);
+    listingFrom($this->grower, ListingKind::Have, [$this->variety]);
+
+    $this->artisan('florea:fix-roles')
+        ->expectsOutputToContain('No hay publicaciones que rompan la regla')
+        ->assertSuccessful();
+});

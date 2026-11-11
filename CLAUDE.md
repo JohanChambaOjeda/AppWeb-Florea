@@ -38,6 +38,17 @@ Cliente que paga: la vendedora de la poscosecha (suscripción mensual a partir d
 3. Quien oferta en un "Busco" es el vendedor: foto del día (1 a 3) y precio por tallo obligatorios. Quien oferta en un "Disponible" es el comprador: sin foto y con precio opcional. Depende del tipo de publicación, no de si la empresa es productor o poscosecha.
 4. Ingreso con número de celular de Ecuador + contraseña. El celular se guarda normalizado en formato E.164 (+5939XXXXXXXX).
 5. La verificación es manual desde el panel admin. Más adelante se pedirá foto de la cédula (la columna ya existe).
+6. **El productor vende y la poscosecha compra. Nunca al revés** (regla 8 en el código). Cada tipo tiene un solo papel:
+
+   |  | Productor (`grower`) | Poscosecha (`postharvest`) |
+   | --- | --- | --- |
+   | Publica | Solo "Tengo disponible" (`have`) | Solo "Busco flor" (`want`) |
+   | Ve en el inicio | Los "Busco" de poscosechas que coinciden con sus variedades (con "Ver todos") + las suyas | Los "Disponible" de productores + las suyas |
+   | Oferta en | Los "Busco" de poscosechas: **vende** | Los "Disponible" de productores: **compra** |
+
+   La regla está escrita una sola vez, en `CompanyType::publishes()` y `ListingKind::publishedBy()`. Todo lo demás —Policies, consultas del inicio, avisos— lee de ahí.
+
+   Quedan publicaciones de antes de esta regla (un "Busco" de un productor, por ejemplo). Las consultas ya no las muestran y nadie puede ofertar en ellas; `php artisan florea:fix-roles` las lista y, con `--apply`, las cierra y rechaza sus ofertas pendientes.
 
 ## Forma de trabajo
 

@@ -14,13 +14,25 @@ beforeEach(function () {
     Notification::fake();
 
     $this->variety = Variety::factory()->create();
+    // Regla 8: el productor vende y la poscosecha compra.
     $this->seller = growerUser($this->variety);
+    $this->buyer = postharvestUser();
 });
 
-/** Publicación de otra empresa, del tipo que se pida. */
+/**
+ * Publicación de otra empresa, del tipo que se pida y publicada por quien
+ * corresponde (regla 8): los "Busco" son de poscosechas y los "Disponible"
+ * de productores.
+ */
 function listingOf(ListingKind $kind, array $lengths = [60, 50]): Listing
 {
-    return listingFrom(postharvestUser(), $kind, [Variety::factory()->create()], $lengths);
+    $variety = Variety::factory()->create();
+
+    $owner = $kind === ListingKind::Want
+        ? postharvestUser()
+        : growerUser($variety);
+
+    return listingFrom($owner, $kind, [$variety], $lengths);
 }
 
 function photo(): UploadedFile
@@ -103,7 +115,8 @@ test('una oferta de venta sin precio es rechazada', function () {
 test('una oferta de compra en un "Disponible" no exige foto ni precio', function () {
     $listing = listingOf(ListingKind::Have);
 
-    $this->actingAs($this->seller)
+    // En un "Disponible" quien oferta es quien compra: la poscosecha.
+    $this->actingAs($this->buyer)
         ->post(route('offers.save', $listing), [
             'items' => [[
                 'listing_item_id' => $listing->items->first()->id,
@@ -125,7 +138,8 @@ test('una oferta de compra en un "Disponible" no exige foto ni precio', function
 test('en un "Disponible" no se admite foto', function () {
     $listing = listingOf(ListingKind::Have);
 
-    $this->actingAs($this->seller)
+    // Quien oferta aquí es quien compra: la poscosecha.
+    $this->actingAs($this->buyer)
         ->post(route('offers.save', $listing), [
             'items' => [[
                 'listing_item_id' => $listing->items->first()->id,

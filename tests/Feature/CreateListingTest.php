@@ -12,10 +12,13 @@ use Illuminate\Support\Facades\Queue;
 beforeEach(function () {
     Queue::fake();
 
-    $this->publisher = postharvestUser();
     $this->freedom = Variety::factory()->create(['name' => 'Freedom']);
     $this->explorer = Variety::factory()->create(['name' => 'Explorer']);
     $this->pinkFloyd = Variety::factory()->create(['name' => 'Pink Floyd']);
+
+    // Regla 8: la poscosecha publica "Busco" y el productor "Disponible".
+    $this->publisher = postharvestUser();
+    $this->grower = growerUser($this->freedom);
 });
 
 /**
@@ -83,7 +86,8 @@ test('se crea un "Busco" con varias líneas y varios largos, y vence a las 48 h'
 test('un "Disponible" vence a las 24 h', function () {
     $this->travelTo(now()->startOfMinute());
 
-    $this->actingAs($this->publisher)
+    // Lo publica el productor, que es a quien le corresponde (regla 8).
+    $this->actingAs($this->grower)
         ->post(route('listings.store'), listingPayload(
             [['variety_id' => $this->freedom->id, 'lengths' => [60], 'quantity' => 10, 'unit' => 'hb']],
             ['kind' => 'have'],

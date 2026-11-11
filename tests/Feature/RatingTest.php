@@ -269,25 +269,29 @@ test('"Nuevo en Florea" con menos de 3 calificaciones', function () {
 
 test('la reputación viaja en las tarjetas pero los comentarios no', function () {
     $variety = Variety::factory()->create();
+
+    // Regla 8: la poscosecha mira la flor que ofrecen los productores, así
+    // que la reputación que tiene que ver en la tarjeta es la del productor.
     $viewer = postharvestUser();
-    $otro = postharvestUser();
-    $listing = listingFrom($otro, ListingKind::Want, [$variety]);
+    $seller = growerUser($variety);
+    listingFrom($seller, ListingKind::Have, [$variety]);
 
     // Un comentario que no debe salir de la base.
+    $closed = listingFrom(postharvestUser(), ListingKind::Want, [$variety]);
     $deal = Deal::create([
-        'offer_id' => offerOn($listing)->id,
-        'buyer_company_id' => $otro->company_id,
-        'seller_company_id' => growerUser($variety)->company_id,
+        'offer_id' => offerOn($closed, $seller)->id,
+        'buyer_company_id' => $closed->company_id,
+        'seller_company_id' => $seller->company_id,
         'closed_at' => now(),
     ]);
     $deal->ratings()->create([
         'from_company_id' => $deal->buyer_company_id,
-        'to_company_id' => $otro->company_id,
+        'to_company_id' => $seller->company_id,
         'score' => 5,
         'on_time' => true,
         'comment' => 'ESTE-COMENTARIO-ES-PRIVADO',
     ]);
-    $otro->company->recomputeReputation();
+    $seller->company->recomputeReputation();
 
     $this->actingAs($viewer)
         ->get(route('dashboard'))

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ListingKind;
 use App\Enums\OfferStatus;
 use App\Models\Listing;
 use App\Models\User;
@@ -15,16 +16,27 @@ class ListingPolicy
 {
     /**
      * Publicar exige empresa verificada (regla 1). El admin no publica.
+     *
+     * Y regla 8: cada tipo publica lo suyo y solo lo suyo. El productor
+     * publica "Disponible" y la poscosecha "Busco". Sin $kind solo se
+     * comprueba que la empresa pueda publicar algo, que es lo que necesita
+     * la pantalla para decidir si enseña el botón.
      */
-    public function create(User $user): Response
+    public function create(User $user, ?ListingKind $kind = null): Response
     {
         if ($user->isAdmin()) {
             return Response::deny('El administrador no publica.');
         }
 
-        return $user->hasVerifiedCompany()
-            ? Response::allow()
-            : Response::deny('Tu cuenta todavía está en revisión.');
+        if (! $user->hasVerifiedCompany()) {
+            return Response::deny('Tu cuenta todavía está en revisión.');
+        }
+
+        if ($kind !== null && $user->company->type->publishes() !== $kind) {
+            return Response::deny($user->company->type->publishHint());
+        }
+
+        return Response::allow();
     }
 
     /**
@@ -53,9 +65,11 @@ class ListingPolicy
      */
     public function duplicate(User $user, Listing $listing): Response
     {
-        return $this->create($user)->allowed()
-            ? $this->manage($user, $listing)
-            : $this->create($user);
+        // Con el kind de la publicación original: duplicar un "Busco" viejo
+        // de cuando la regla no existía tampoco vale.
+        $create = $this->create($user, $listing->kind);
+
+        return $create->allowed() ? $this->manage($user, $listing) : $create;
     }
 
     /**
@@ -73,6 +87,15 @@ class ListingPolicy
 
         if ($listing->belongsToCompany($user->company)) {
             return Response::deny('No puedes ofertar en tu propia publicación.');
+        }
+
+        // Regla 8: el productor oferta en los "Busco" de poscosechas y la
+        // poscosecha en los "Disponible" de productores. Se comprueban las
+        // dos puntas, porque pueden quedar publicaciones viejas de cuando la
+        // regla no existía: un "Busco" de un productor no lo oferta nadie.
+        if ($user->company->type->offersOn() !== $listing->kind
+            || $listing->company->type !== $listing->kind->publishedBy()) {
+            return Response::deny('Esta publicación no es para tu tipo de empresa.');
         }
 
         if (! $listing->isOpen()) {

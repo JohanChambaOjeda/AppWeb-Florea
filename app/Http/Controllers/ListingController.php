@@ -31,15 +31,22 @@ class ListingController extends Controller
      * Formulario de "Nueva publicación". Con ?from=ID se abre con las líneas
      * de una publicación propia, para los pedidos que se repiten cada semana.
      */
-    public function create(Request $request): Response
+    public function create(Request $request): Response|RedirectResponse
     {
         Gate::authorize('create', Listing::class);
 
         $source = $this->duplicateSource($request);
 
-        $kind = $source->kind
-            ?? ListingKind::tryFrom((string) $request->query('kind'))
-            ?? ListingKind::Want;
+        // Regla 8: el tipo de publicación ya no lo elige quien publica, lo
+        // determina su empresa. El ?kind= de la URL solo sirve para avisar
+        // con cariño a quien llegó al sitio equivocado.
+        $kind = $request->user()->company->type->publishes();
+        $asked = ListingKind::tryFrom((string) $request->query('kind'));
+
+        if ($asked !== null && $asked !== $kind) {
+            return to_route('dashboard')
+                ->with('info', $request->user()->company->type->publishHint());
+        }
 
         return Inertia::render('listings/create', [
             'kind' => $kind->value,
@@ -145,10 +152,10 @@ class ListingController extends Controller
 
     public function store(StoreListingRequest $request): RedirectResponse
     {
-        Gate::authorize('create', Listing::class);
-
         $data = $request->validated();
         $kind = ListingKind::from($data['kind']);
+
+        Gate::authorize('create', [Listing::class, $kind]);
         $user = $request->user();
 
         $listing = DB::transaction(function () use ($data, $kind, $user) {
