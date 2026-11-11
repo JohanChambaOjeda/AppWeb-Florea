@@ -37,7 +37,20 @@ const ICONS = {
 export function NotificationBell() {
     const page = usePage<{
         unreadNotifications: number;
-        notifications: AppNotification[] | null;
+        /**
+         * Tres estados, y los tres hay que contemplarlos:
+         *
+         * - `undefined`: con sesión y la campana sin abrir todavía. El
+         *   servidor la manda con Inertia::optional, así que NO viaja en la
+         *   carga inicial.
+         * - `null`: invitado, el servidor manda null a secas.
+         * - lista: ya se pidió al abrir la campana.
+         *
+         * Tratar `undefined` como si fuera `null` rompía TODA la app con
+         * sesión: el `items.length` lanzaba y se llevaba por delante el
+         * layout entero, así que no se pintaba nada.
+         */
+        notifications?: AppNotification[] | null;
     }>();
     const { unreadNotifications: unread, notifications: items } = page.props;
 
@@ -135,11 +148,11 @@ export function NotificationBell() {
                 </div>
 
                 <div className="max-h-[70vh] overflow-y-auto">
-                    {loading && items === null ? (
+                    {loading && !items ? (
                         <div className="flex justify-center p-6">
                             <Spinner />
                         </div>
-                    ) : items === null || items.length === 0 ? (
+                    ) : !items || items.length === 0 ? (
                         <p className="p-6 text-center text-sm text-muted-foreground">
                             No tienes notificaciones todavía.
                         </p>
