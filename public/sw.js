@@ -16,7 +16,12 @@
  *
  * Al cambiar SHELL hay que subir la versión de CACHE para que se renueve.
  */
-const VERSION = 'florea-v1';
+// v2: la v1 alcanzó a guardar los .js que Hostinger servía con el MIME
+// equivocado (application/x-javascript). Como la estrategia es caché
+// primero, el navegador seguía usando esa copia mala aunque el servidor ya
+// mandara el tipo correcto, y la app no arrancaba nunca. Subir la versión
+// borra el caché viejo al activarse: para eso existe esta constante.
+const VERSION = 'florea-v2';
 const SHELL = [
     '/offline.html',
     '/manifest.webmanifest',
