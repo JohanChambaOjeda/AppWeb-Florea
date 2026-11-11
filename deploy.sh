@@ -2,13 +2,13 @@
 #
 # Actualiza Florea en Hostinger.
 #
-#   cd ~/domains/floreaec.com/florea && ./deploy.sh
+#   cd ~/domains/florea.lat/florea && ./deploy.sh
 #
 # OJO: el frontend NO se compila aquí (en el servidor no hay Node). Antes de
 # correr esto, desde tu máquina:
 #
 #   npm run build
-#   scp -r public/build/* USUARIO@floreaec.com:domains/floreaec.com/florea/public/build/
+#   scp -r public/build/* USUARIO@florea.lat:domains/florea.lat/florea/public/build/
 #
 # (En Windows no hay rsync, así que va con scp. Los archivos viejos se quedan
 # ahí, pero no molestan: cada build lleva su hash en el nombre y el que manda

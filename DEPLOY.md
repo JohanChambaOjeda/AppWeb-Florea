@@ -7,8 +7,8 @@ cambiado; lo que importa es el concepto, que está explicado en cada paso.
 Convenciones de esta guía:
 
 - `u123456789` → tu usuario de Hostinger (lo ves al entrar por SSH).
-- `floreaec.com` → tu dominio.
-- `$APP` → `/home/u123456789/domains/floreaec.com/florea` (el código).
+- `florea.lat` → tu dominio.
+- `$APP` → `/home/u123456789/domains/florea.lat/florea` (el código).
 
 ---
 
@@ -57,7 +57,7 @@ La regla de oro: **el código fuera de la carpeta pública**. Si `vendor/`,
 Queremos esto:
 
 ```
-/home/u123456789/domains/floreaec.com/
+/home/u123456789/domains/florea.lat/
 ├── florea/              ← todo el proyecto (NO accesible por web)
 │   ├── app/
 │   ├── storage/
@@ -72,11 +72,11 @@ Queremos esto:
 
 ### Opción A — Cambiar la raíz del sitio (recomendada)
 
-En hPanel → Sitios web → `floreaec.com` → Avanzado, busca la opción de cambiar
+En hPanel → Sitios web → `florea.lat` → Avanzado, busca la opción de cambiar
 la raíz del documento (_document root_) y apúntala a:
 
 ```
-/domains/floreaec.com/florea/public
+/domains/florea.lat/florea/public
 ```
 
 Es la opción limpia: no se duplica nada y `public_html` deja de usarse.
@@ -86,7 +86,7 @@ Es la opción limpia: no se duplica nada y `public_html` deja de usarse.
 Si el panel no deja cambiar la raíz:
 
 ```bash
-cd ~/domains/floreaec.com
+cd ~/domains/florea.lat
 mv public_html public_html.bak
 ln -s florea/public public_html
 ```
@@ -100,7 +100,7 @@ Deja `public_html` como raíz y pon dentro un `index.php` que arranque la app
 desde fuera:
 
 ```bash
-cd ~/domains/floreaec.com
+cd ~/domains/florea.lat
 cp florea/public/.htaccess public_html/
 cp florea/public/favicon.ico public_html/ 2>/dev/null
 cp florea/public/robots.txt public_html/ 2>/dev/null
@@ -135,8 +135,8 @@ git push -u origin main
 Luego, en el servidor:
 
 ```bash
-ssh u123456789@floreaec.com
-cd ~/domains/floreaec.com
+ssh u123456789@florea.lat
+cd ~/domains/florea.lat
 git clone git@github.com:TU_USUARIO/florea.git florea
 cd florea
 ```
@@ -173,7 +173,7 @@ APP_NAME=Florea
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=                       # se genera en el paso siguiente
-APP_URL=https://floreaec.com      # con https y SIN barra final
+APP_URL=https://florea.lat      # con https y SIN barra final
 
 APP_TIMEZONE=America/Guayaquil
 APP_LOCALE=es
@@ -197,7 +197,7 @@ ADMIN_PHONE=0999999999
 ADMIN_PASSWORD=una-contraseña-larga-y-distinta-a-la-de-local
 
 # Avisos push. Se generan en el paso 4.1, NO se copian de local.
-VAPID_SUBJECT="mailto:hola@floreaec.com"
+VAPID_SUBJECT="mailto:hola@florea.lat"
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 ```
@@ -300,13 +300,13 @@ así que **no viaja con `git push`** y hay que subirlo aparte:
 En tu máquina **no hay rsync** (es Windows sin WSL), así que va con `scp`:
 
 ```bash
-scp -r public/build/* u123456789@floreaec.com:domains/floreaec.com/florea/public/build/
+scp -r public/build/* u123456789@florea.lat:domains/florea.lat/florea/public/build/
 ```
 
 La primera vez, la carpeta remota no existe. Créala antes:
 
 ```bash
-ssh u123456789@floreaec.com "mkdir -p domains/floreaec.com/florea/public/build"
+ssh u123456789@florea.lat "mkdir -p domains/florea.lat/florea/public/build"
 ```
 
 > **Lo que hace `scp` y `rsync` no:** dejar los archivos viejos. No es grave
@@ -315,7 +315,7 @@ ssh u123456789@floreaec.com "mkdir -p domains/floreaec.com/florea/public/build"
 > despliegues, bórrala en el servidor y súbela limpia:
 >
 > ```bash
-> ssh u123456789@floreaec.com "rm -rf domains/floreaec.com/florea/public/build"
+> ssh u123456789@florea.lat "rm -rf domains/florea.lat/florea/public/build"
 > ```
 >
 > Hazlo justo antes de subir la nueva, no después de un despliegue: entre el
@@ -469,13 +469,13 @@ permite dejar procesos corriendo. De esa línea cuelga todo lo demás.
 hPanel → Avanzado → Trabajos cron (_Cron Jobs_). Cada minuto:
 
 ```
-* * * * * cd /home/u123456789/domains/floreaec.com/florea && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/u123456789/domains/florea.lat/florea && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 Si el `php` del sistema no es 8.3+, pon la ruta completa:
 
 ```
-* * * * * cd /home/u123456789/domains/floreaec.com/florea && /opt/alt/php83/usr/bin/php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/u123456789/domains/florea.lat/florea && /opt/alt/php83/usr/bin/php artisan schedule:run >> /dev/null 2>&1
 ```
 
 De esa única línea salen tres tareas (definidas en `routes/console.php`):
@@ -544,8 +544,8 @@ Revisa en ese resumen:
 
 Y en el navegador:
 
-- [ ] `https://floreaec.com` carga y redirige a HTTPS
-- [ ] `https://floreaec.com/up` responde (health check de Laravel)
+- [ ] `https://florea.lat` carga y redirige a HTTPS
+- [ ] `https://florea.lat/up` responde (health check de Laravel)
 - [ ] Se puede registrar una empresa con un celular de Ecuador
 - [ ] Entras al panel admin con `ADMIN_PHONE` / `ADMIN_PASSWORD`
 - [ ] Verificas esa empresa desde el panel y ya puede publicar
@@ -570,9 +570,9 @@ mala señal.
 ### Que nada privado quede expuesto
 
 ```bash
-curl -I https://floreaec.com/.env          # debe dar 403 o 404, NUNCA 200
-curl -I https://floreaec.com/storage/logs/laravel.log
-curl -I https://floreaec.com/composer.json
+curl -I https://florea.lat/.env          # debe dar 403 o 404, NUNCA 200
+curl -I https://florea.lat/storage/logs/laravel.log
+curl -I https://florea.lat/composer.json
 ```
 
 Si alguno responde `200`, la raíz del sitio está mal puesta: vuelve al paso 1.
@@ -590,11 +590,11 @@ composer test:mysql
 
 # 2. Compilar y subir el frontend
 npm run build
-scp -r public/build/* u123456789@floreaec.com:domains/floreaec.com/florea/public/build/
+scp -r public/build/* u123456789@florea.lat:domains/florea.lat/florea/public/build/
 
 # 3. En el servidor
-ssh u123456789@floreaec.com
-cd ~/domains/floreaec.com/florea && ./deploy.sh
+ssh u123456789@florea.lat
+cd ~/domains/florea.lat/florea && ./deploy.sh
 ```
 
 > **Por qué el paso 1.** El día a día se prueba sobre SQLite porque tarda 14
