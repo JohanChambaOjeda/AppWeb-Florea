@@ -21,12 +21,31 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-# Si el php del sistema no es 8.3+, pon aquí la ruta completa.
-# Por ejemplo: PHP=/opt/alt/php83/usr/bin/php
-PHP="${PHP:-php}"
+# El PHP con el que corre todo.
+#
+# En Hostinger el `php` del PATH es 8.2, pero Florea necesita 8.4: las
+# versiones de Symfony con los parches de seguridad de noviembre exigen
+# >=8.4.1. Por eso se busca el 8.4 primero y solo se cae al del sistema si
+# no está. Se puede forzar con: PHP=/ruta/al/php ./deploy.sh
+if [ -z "${PHP:-}" ]; then
+    for candidate in /opt/alt/php84/usr/bin/php /opt/alt/php83/usr/bin/php php; do
+        if command -v "$candidate" > /dev/null 2>&1; then
+            PHP="$candidate"
+            break
+        fi
+    done
+fi
 
 echo "==> Versión de PHP"
 "$PHP" -v | head -1
+
+# Si no llega a 8.3 no seguimos: composer install fallaría a mitad y el
+# despliegue quedaría con el código nuevo y las dependencias viejas.
+"$PHP" -r 'exit(version_compare(PHP_VERSION, "8.3", ">=") ? 0 : 1);' || {
+    echo "ERROR: Florea necesita PHP 8.3+ y este es $("$PHP" -r 'echo PHP_VERSION;')."
+    echo "Prueba:  PHP=/opt/alt/php84/usr/bin/php ./deploy.sh"
+    exit 1
+}
 
 echo "==> Modo mantenimiento"
 "$PHP" artisan down --render="errors::503" --retry=60 || true
@@ -39,7 +58,10 @@ echo "==> Código"
 git pull --ff-only origin main
 
 echo "==> Dependencias de PHP"
-composer install --no-dev --optimize-autoloader --no-interaction
+# Con "$PHP" por delante: si no, composer usa el php del PATH (8.2 aquí) y
+# se niega a instalar, dejando el código nuevo con el vendor viejo.
+"$PHP" "$(command -v composer || echo composer.phar)" \
+    install --no-dev --optimize-autoloader --no-interaction
 
 echo "==> Base de datos"
 "$PHP" artisan migrate --force
