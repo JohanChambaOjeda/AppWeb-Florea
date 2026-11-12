@@ -160,6 +160,10 @@ final class OfferPresenter
             'pricePerStem' => $offer->price_per_stem,
             'delivery' => $offer->delivery->value,
             'deliveryLabel' => $offer->delivery->label(),
+            // Solo lo lleva la oferta de quien compra. El productor lo ve
+            // antes de aceptar, que es el momento en que le importa.
+            'paymentTerm' => $offer->payment_term?->value,
+            'paymentTermLabel' => $offer->payment_term?->label(),
             'notes' => $offer->notes,
             'createdAt' => $offer->created_at->toIso8601String(),
             'updatedAt' => $offer->updated_at->toIso8601String(),

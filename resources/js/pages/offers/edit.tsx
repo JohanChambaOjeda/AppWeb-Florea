@@ -30,6 +30,7 @@ type Props = {
     sells: boolean;
     units: Option[];
     deliveries: Option[];
+    paymentTerms: Option[];
     customLength: LengthRange;
     maxPhotos: number;
     notesMax: number;
@@ -63,6 +64,7 @@ export default function EditOffer({
     sells,
     units,
     deliveries,
+    paymentTerms,
     customLength,
     maxPhotos,
     notesMax,
@@ -73,6 +75,9 @@ export default function EditOffer({
     const [price, setPrice] = useState(offer?.pricePerStem ?? '');
     const [delivery, setDelivery] = useState<Delivery | null>(
         offer?.delivery ?? null,
+    );
+    const [paymentTerm, setPaymentTerm] = useState<string | null>(
+        offer?.paymentTerm ?? null,
     );
     const [notes, setNotes] = useState(offer?.notes ?? '');
     const [keptIds, setKeptIds] = useState<number[]>(
@@ -132,6 +137,8 @@ export default function EditOffer({
                 })),
                 price_per_stem: price.trim() === '' ? null : price,
                 delivery,
+                // Solo lo manda quien compra; el backend lo rechaza si no.
+                payment_term: sells ? null : paymentTerm,
                 notes: notes.trim() === '' ? null : notes.trim(),
                 keep_photos: keptIds,
                 photos: files,
@@ -241,6 +248,29 @@ export default function EditOffer({
                         />
                         <InputError message={errors.delivery} />
                     </div>
+
+                    {/*
+                        El plazo lo pone quien paga, así que aquí solo cuando
+                        quien oferta compra. Si vende, lo elige la poscosecha
+                        al aceptar. Queda escrito para que después no sea
+                        "yo dije 15 días" contra "tú dijiste contra entrega".
+                    */}
+                    {!sells && (
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-base">¿Cuándo pagas?</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Queda registrado y el productor lo ve antes de
+                                aceptar.
+                            </p>
+                            <OptionButtons
+                                options={paymentTerms}
+                                value={paymentTerm}
+                                onChange={setPaymentTerm}
+                                size="sm"
+                            />
+                            <InputError message={errors.payment_term} />
+                        </div>
+                    )}
                 </section>
 
                 {/* Fotos: solo quien vende */}

@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { BadgeCheck, Check, MapPin, X } from 'lucide-react';
 import { useState } from 'react';
+import { AcceptOfferDialog } from '@/components/accept-offer-dialog';
 import { ContactCard } from '@/components/contact-card';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { ReputationBadge } from '@/components/reputation-badge';
@@ -10,7 +11,7 @@ import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { sinceLabel } from '@/lib/time-left';
 import offers from '@/routes/offers';
-import type { ListingDetail, ReceivedOffer } from '@/types';
+import type { ListingDetail, Option, ReceivedOffer } from '@/types';
 
 /**
  * Las ofertas recibidas, para compararlas: tarjetas en celular y tabla en
@@ -19,10 +20,18 @@ import type { ListingDetail, ReceivedOffer } from '@/types';
 export function OfferComparison({
     offers: received,
     listing,
+    paymentTerms,
 }: {
     offers: ReceivedOffer[];
     listing: ListingDetail;
+    paymentTerms: Option[];
 }) {
+    // Aceptar abre un diálogo, no un confirm: hay que elegir el plazo de
+    // pago cuando quien acepta es quien paga.
+    const [accepting, setAccepting] = useState<ReceivedOffer | null>(null);
+
+    // En un "Busco" quien acepta es la poscosecha, o sea quien paga.
+    const choosesTerm = listing.kind === 'want';
     if (received.length === 0) {
         return (
             <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -55,43 +64,50 @@ export function OfferComparison({
             {/* Celular: una tarjeta por oferta */}
             <div className="flex flex-col gap-3 lg:hidden">
                 {received.map((offer) => (
-                    <OfferCard key={offer.id} offer={offer} listing={listing} />
+                    <OfferCard
+                        key={offer.id}
+                        offer={offer}
+                        listing={listing}
+                        onAccept={setAccepting}
+                    />
                 ))}
             </div>
 
             {/* Pantalla grande: tabla para comparar de un vistazo */}
             <div className="hidden lg:block">
-                <OfferTable offers={received} listing={listing} />
+                <OfferTable
+                    offers={received}
+                    listing={listing}
+                    onAccept={setAccepting}
+                />
             </div>
+
+            {accepting !== null && (
+                <AcceptOfferDialog
+                    offerId={accepting.id}
+                    companyName={accepting.company.name}
+                    choosesTerm={choosesTerm}
+                    agreedTerm={accepting.paymentTermLabel}
+                    paymentTerms={paymentTerms}
+                    open
+                    onOpenChange={(next) => !next && setAccepting(null)}
+                />
+            )}
         </section>
     );
 }
 
-/** Acepta o rechaza, con confirmación. */
+/** Rechazar sigue siendo un confirm: no hay nada que elegir. */
 function useRespond() {
     const [busy, setBusy] = useState<number | null>(null);
 
-    const respond = (
-        offer: ReceivedOffer,
-        action: 'accept' | 'reject',
-        companyName: string,
-    ) => {
-        const question =
-            action === 'accept'
-                ? `¿Aceptar la oferta de ${companyName}? Se le mostrará tu celular para coordinar.`
-                : `¿Rechazar la oferta de ${companyName}?`;
-
-        if (!window.confirm(question)) {
+    const respond = (offer: ReceivedOffer, companyName: string) => {
+        if (!window.confirm(`¿Rechazar la oferta de ${companyName}?`)) {
             return;
         }
 
-        const url =
-            action === 'accept'
-                ? offers.accept(offer.id).url
-                : offers.reject(offer.id).url;
-
         router.post(
-            url,
+            offers.reject(offer.id).url,
             {},
             {
                 preserveScroll: true,
@@ -107,9 +123,11 @@ function useRespond() {
 function OfferCard({
     offer,
     listing,
+    onAccept,
 }: {
     offer: ReceivedOffer;
     listing: ListingDetail;
+    onAccept: (offer: ReceivedOffer) => void;
 }) {
     const now = useNow();
     const { busy, respond } = useRespond();
@@ -195,9 +213,7 @@ function OfferCard({
                     <Button
                         className="h-12 flex-1 text-base"
                         disabled={busy === offer.id}
-                        onClick={() =>
-                            respond(offer, 'accept', offer.company.name)
-                        }
+                        onClick={() => onAccept(offer)}
                     >
                         <Check />
                         Aceptar
@@ -206,9 +222,7 @@ function OfferCard({
                         variant="outline"
                         className="h-12 flex-1 text-base"
                         disabled={busy === offer.id}
-                        onClick={() =>
-                            respond(offer, 'reject', offer.company.name)
-                        }
+                        onClick={() => respond(offer, offer.company.name)}
                     >
                         <X />
                         Rechazar
@@ -224,9 +238,11 @@ function OfferCard({
 function OfferTable({
     offers: received,
     listing,
+    onAccept,
 }: {
     offers: ReceivedOffer[];
     listing: ListingDetail;
+    onAccept: (offer: ReceivedOffer) => void;
 }) {
     const now = useNow();
     const { busy, respond } = useRespond();
@@ -305,13 +321,7 @@ function OfferTable({
                                         <Button
                                             size="sm"
                                             disabled={busy === offer.id}
-                                            onClick={() =>
-                                                respond(
-                                                    offer,
-                                                    'accept',
-                                                    offer.company.name,
-                                                )
-                                            }
+                                            onClick={() => onAccept(offer)}
                                         >
                                             <Check />
                                             Aceptar
@@ -323,7 +333,6 @@ function OfferTable({
                                             onClick={() =>
                                                 respond(
                                                     offer,
-                                                    'reject',
                                                     offer.company.name,
                                                 )
                                             }

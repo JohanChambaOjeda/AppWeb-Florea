@@ -27,6 +27,7 @@ import type {
     ListingDetail,
     ListingDetailItem,
     MyOffer,
+    Option,
     ReceivedOffer,
 } from '@/types';
 
@@ -34,6 +35,7 @@ type Props = {
     listing: ListingDetail;
     myOffer: MyOffer | null;
     offers: ReceivedOffer[] | null;
+    paymentTerms: Option[];
     canOffer: boolean;
     offerDenial: string | null;
     canClose: boolean;
@@ -43,6 +45,7 @@ export default function ShowListing({
     listing,
     myOffer,
     offers,
+    paymentTerms,
     canOffer,
     offerDenial,
     canClose,
@@ -171,7 +174,11 @@ export default function ShowListing({
 
                 {/* Ofertas recibidas: solo para quien publicó */}
                 {offers !== null && (
-                    <OfferComparison offers={offers} listing={listing} />
+                    <OfferComparison
+                        offers={offers}
+                        listing={listing}
+                        paymentTerms={paymentTerms}
+                    />
                 )}
 
                 {/* Acciones */}

@@ -1,4 +1,4 @@
-import { Clock3, Handshake, Sparkles, Star } from 'lucide-react';
+import { Clock3, Handshake, Wallet, Sparkles, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Reputation } from '@/types';
 
@@ -55,10 +55,22 @@ export function ReputationBadge({
                 {reputation.deals} {reputation.deals === 1 ? 'trato' : 'tratos'}
             </span>
 
+            {/*
+                A cada tipo se le mide por lo suyo: al productor por entregar
+                a tiempo, a la poscosecha por pagar como acordó. El servidor
+                manda solo el que corresponde; el otro llega nulo.
+            */}
             {reputation.onTimePct !== null && (
                 <span className="flex items-center gap-1">
                     <Clock3 className="size-3.5" />
                     {reputation.onTimePct}% a tiempo
+                </span>
+            )}
+
+            {reputation.paidPct !== null && (
+                <span className="flex items-center gap-1">
+                    <Wallet className="size-3.5" />
+                    {reputation.paidPct}% paga como acuerda
                 </span>
             )}
         </span>

@@ -57,7 +57,10 @@ export type Reputation = {
     stars: number | null;
     ratings: number;
     deals: number;
+    /** Del productor: qué parte de sus entregas llegó a tiempo. */
     onTimePct: number | null;
+    /** De la poscosecha: qué parte de sus pagos fue como se acordó. */
+    paidPct: number | null;
 };
 
 /** Lo que se puede mostrar de la empresa que publica. Nunca el celular. */
@@ -153,6 +156,9 @@ type OfferBase = {
     pricePerStem: string | null;
     delivery: Delivery;
     deliveryLabel: string;
+    /** Solo en la oferta de quien compra: el plazo en que va a pagar. */
+    paymentTerm: string | null;
+    paymentTermLabel: string | null;
     notes: string | null;
     createdAt: string;
     updatedAt: string;

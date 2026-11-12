@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Delivery;
 use App\Enums\OfferStatus;
+use App\Enums\PaymentTerm;
 use App\Enums\Unit;
 use App\Http\Requests\SaveOfferRequest;
 use App\Models\Listing;
@@ -44,6 +45,8 @@ class OfferController extends Controller
             'sells' => $listing->kind->offererSells(),
             'units' => Unit::options(),
             'deliveries' => Delivery::options(),
+            // El plazo de pago solo lo pone quien compra.
+            'paymentTerms' => PaymentTerm::options(),
             'customLength' => config('florea.custom_length'),
             'maxPhotos' => SaveOfferRequest::MAX_PHOTOS,
             'notesMax' => (int) config('florea.notes_max'),

@@ -7,6 +7,7 @@ use App\Enums\Destination;
 use App\Enums\ListingKind;
 use App\Enums\ListingStatus;
 use App\Enums\OfferStatus;
+use App\Enums\PaymentTerm;
 use App\Enums\Unit;
 use App\Http\Requests\StoreListingRequest;
 use App\Jobs\NotifyMatchingGrowers;
@@ -96,6 +97,9 @@ class ListingController extends Controller
             // Las ofertas recibidas solo viajan a quien publicó.
             'offers' => $isMine ? $this->offersFor($listing, $user) : null,
             // La Policy decide; la pantalla solo pinta el botón que toque.
+            // Para el diálogo de aceptar: quien acepta un "Busco" suyo es
+            // quien paga, y elige ahí el plazo.
+            'paymentTerms' => PaymentTerm::options(),
             'canOffer' => Gate::allows('offer', $listing),
             'offerDenial' => Gate::inspect('offer', $listing)->message(),
             'canClose' => Gate::allows('close', $listing),

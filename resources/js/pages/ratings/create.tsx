@@ -19,11 +19,16 @@ type Props = {
         closedAt: string;
         what: string;
         pricePerStem: string | null;
+        /** El plazo acordado, para responder con él delante. */
+        paymentTerm: string | null;
+        paymentDue: string | null;
     };
     other: { name: string; typeLabel: string };
+    /** Quien compra reporta la entrega; quien vende, el pago. */
     isBuyer: boolean;
     deliveryResults: Option[];
     rejectedRanges: Option[];
+    paidOptions: Option[];
     commentMax: number;
 };
 
@@ -38,6 +43,7 @@ export default function CreateRating({
     isBuyer,
     deliveryResults,
     rejectedRanges,
+    paidOptions,
     commentMax,
 }: Props) {
     const { errors } = usePage().props as { errors: Record<string, string> };
@@ -45,20 +51,31 @@ export default function CreateRating({
     const [delivered, setDelivered] = useState<string | null>(null);
     const [onTime, setOnTime] = useState<string | null>(null);
     const [rejected, setRejected] = useState<string | null>(null);
+    const [paid, setPaid] = useState<string | null>(null);
+    const [honored, setHonored] = useState<string | null>(null);
     const [score, setScore] = useState<number | null>(null);
     const [comment, setComment] = useState('');
     const [processing, setProcessing] = useState(false);
     const [clientError, setClientError] = useState<string | null>(null);
 
     const submit = () => {
-        if (delivered === null || onTime === null || score === null) {
+        if (score === null) {
+            setClientError('Pon las estrellas.');
+
+            return;
+        }
+
+        if (
+            isBuyer &&
+            (delivered === null || onTime === null || rejected === null)
+        ) {
             setClientError('Responde las tres preguntas de arriba.');
 
             return;
         }
 
-        if (isBuyer && rejected === null) {
-            setClientError('Dinos cuánto se rechazó.');
+        if (!isBuyer && (paid === null || honored === null)) {
+            setClientError('Responde las dos preguntas de arriba.');
 
             return;
         }
@@ -67,9 +84,16 @@ export default function CreateRating({
         router.post(
             ratings.store(deal.id).url,
             {
-                delivered,
-                on_time: onTime === '1',
-                rejected_range: isBuyer ? rejected : null,
+                ...(isBuyer
+                    ? {
+                          delivered,
+                          on_time: onTime === '1',
+                          rejected_range: rejected,
+                      }
+                    : {
+                          paid_as_agreed: paid,
+                          honored_agreement: honored === '1',
+                      }),
                 score,
                 comment: comment.trim() === '' ? null : comment.trim(),
             },
@@ -96,40 +120,92 @@ export default function CreateRating({
                     </p>
                 </header>
 
+                {/*
+                    Cada uno responde por lo que vivió. La poscosecha recibió
+                    la flor; el productor cobró. Preguntarle a cada cual por
+                    lo del otro solo daría respuestas inventadas.
+                */}
                 <section className="flex flex-col gap-5 rounded-xl border bg-card p-4">
-                    <div className="flex flex-col gap-2">
-                        <Label className="text-base">¿Se entregó?</Label>
-                        <OptionButtons
-                            options={deliveryResults}
-                            value={delivered}
-                            onChange={setDelivered}
-                        />
-                        <InputError message={errors.delivered} />
-                    </div>
+                    {isBuyer ? (
+                        <>
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-base">
+                                    ¿Se entregó?
+                                </Label>
+                                <OptionButtons
+                                    options={deliveryResults}
+                                    value={delivered}
+                                    onChange={setDelivered}
+                                />
+                                <InputError message={errors.delivered} />
+                            </div>
 
-                    <div className="flex flex-col gap-2">
-                        <Label className="text-base">¿Llegó a tiempo?</Label>
-                        <OptionButtons
-                            options={YES_NO}
-                            value={onTime}
-                            onChange={setOnTime}
-                        />
-                        <InputError message={errors.on_time} />
-                    </div>
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-base">
+                                    ¿Llegó a tiempo?
+                                </Label>
+                                <OptionButtons
+                                    options={YES_NO}
+                                    value={onTime}
+                                    onChange={setOnTime}
+                                />
+                                <InputError message={errors.on_time} />
+                            </div>
 
-                    {isBuyer && (
-                        <div className="flex flex-col gap-2">
-                            <Label className="text-base">
-                                ¿Cuánto se rechazó?
-                            </Label>
-                            <OptionButtons
-                                options={rejectedRanges}
-                                value={rejected}
-                                onChange={setRejected}
-                                size="sm"
-                            />
-                            <InputError message={errors.rejected_range} />
-                        </div>
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-base">
+                                    ¿Cuánto se rechazó?
+                                </Label>
+                                <OptionButtons
+                                    options={rejectedRanges}
+                                    value={rejected}
+                                    onChange={setRejected}
+                                    size="sm"
+                                />
+                                <InputError message={errors.rejected_range} />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-base">
+                                    ¿Te pagó como acordaron?
+                                </Label>
+                                {deal.paymentTerm !== null && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Lo acordado fue:{' '}
+                                        <strong className="font-semibold">
+                                            {deal.paymentTerm}
+                                        </strong>
+                                    </p>
+                                )}
+                                <OptionButtons
+                                    options={paidOptions}
+                                    value={paid}
+                                    onChange={setPaid}
+                                    size="sm"
+                                />
+                                <InputError message={errors.paid_as_agreed} />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-base">
+                                    ¿Respetó lo acordado al recibir la flor?
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    La cantidad, el largo y el precio que habían
+                                    quedado.
+                                </p>
+                                <OptionButtons
+                                    options={YES_NO}
+                                    value={honored}
+                                    onChange={setHonored}
+                                />
+                                <InputError
+                                    message={errors.honored_agreement}
+                                />
+                            </div>
+                        </>
                     )}
                 </section>
 
