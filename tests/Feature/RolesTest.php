@@ -6,7 +6,8 @@ use App\Enums\OfferStatus;
 use App\Jobs\NotifyMatchingGrowers;
 use App\Models\Listing;
 use App\Models\Variety;
-use Illuminate\Support\Facades\Queue;
+use App\Notifications\MatchingListingPublished;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * REGLA 8: el productor vende y la poscosecha compra. Nunca al revés.
@@ -39,8 +40,12 @@ function rolePayload(string $kind, Variety $variety): array
 test('cada tipo solo publica lo suyo', function (string $who, string $kind, bool $allowed) {
     $user = $who === 'grower' ? $this->grower : $this->postharvest;
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->post(route('listings.store'), rolePayload($kind, $this->variety));
+
+    // 403, no un error de validación: el formulario nunca manda el tipo
+    // equivocado, así que si llega es una petición armada a mano.
+    $allowed ? $response->assertRedirect() : $response->assertForbidden();
 
     expect(Listing::where('kind', $kind)->count())->toBe($allowed ? 1 : 0);
 })->with([
@@ -72,13 +77,26 @@ test('el formulario se abre siempre en el tipo que le toca', function () {
         ->assertOk();
 });
 
-test('no se puede duplicar una publicación que ya no le corresponde', function () {
-    // Un "Busco" de un productor, de antes de la regla.
-    $stale = listingFrom($this->grower, ListingKind::Want, [$this->variety]);
+test('no se puede duplicar lo que ya no le corresponde', function (string $who, string $kind) {
+    $user = $who === 'grower' ? $this->grower : $this->postharvest;
 
-    $this->actingAs($this->grower)
+    // Una publicación suya de antes de la regla 8.
+    $stale = listingFrom($user, ListingKind::from($kind), [$this->variety]);
+
+    $this->actingAs($user)
         ->get(route('listings.create', ['from' => $stale->id]))
         ->assertForbidden();
+})->with([
+    'el productor no duplica un "Busco" viejo' => ['grower', 'want'],
+    'la poscosecha no duplica un "Disponible" viejo' => ['postharvest', 'have'],
+]);
+
+test('sí se puede duplicar lo propio del tipo que toca', function () {
+    $mine = listingFrom($this->postharvest, ListingKind::Want, [$this->variety]);
+
+    $this->actingAs($this->postharvest)
+        ->get(route('listings.create', ['from' => $mine->id]))
+        ->assertOk();
 });
 
 test('el inicio manda un solo botón y dos pestañas, según el tipo', function () {
@@ -143,19 +161,33 @@ test('nadie oferta en un "Busco" de un productor', function () {
 
 // ── Avisos ──────────────────────────────────────────────────────────────
 
-test('el aviso de nuevo pedido solo sale por "Busco" de poscosechas', function () {
-    Queue::fake();
+/**
+ * El aviso de "hay un pedido con tus variedades" existe para avisar a quien
+ * puede venderlo. Un "Busco" de un productor no se lo puede vender nadie,
+ * asi que no debe mover ni un aviso.
+ *
+ * Que tampoco se avise a otras poscosechas ya lo cubre NotificationTest.
+ */
+test('el aviso de nuevo pedido solo sale por "Busco" de poscosechas', function (string $who, bool $avisa) {
+    Notification::fake();
 
-    $job = new NotifyMatchingGrowers(
-        listingFrom($this->grower, ListingKind::Want, [$this->variety]),
-    );
+    // OJO: el que recibe NO puede ser el mismo que publica. El aviso ya
+    // excluye a la empresa propia, asi que con un solo productor el test
+    // pasaria igual aunque se quitara la regla: comprobado quitandola.
+    $otroProductor = growerUser($this->variety);
 
-    $job->handle();
+    $publisher = $who === 'grower' ? $this->grower : $this->postharvest;
+    $listing = listingFrom($publisher, ListingKind::Want, [$this->variety]);
 
-    // El productor con esa variedad no recibe nada por un "Busco" ajeno
-    // que no es de una poscosecha.
-    expect($this->grower->notifications()->count())->toBe(0);
-});
+    (new NotifyMatchingGrowers($listing))->handle();
+
+    $avisa
+        ? Notification::assertSentTo($otroProductor, MatchingListingPublished::class)
+        : Notification::assertNotSentTo($otroProductor, MatchingListingPublished::class);
+})->with([
+    'de una poscosecha: si avisa' => ['postharvest', true],
+    'de un productor: no avisa a nadie' => ['grower', false],
+]);
 
 // ── Limpiar lo que quedó de antes ───────────────────────────────────────
 

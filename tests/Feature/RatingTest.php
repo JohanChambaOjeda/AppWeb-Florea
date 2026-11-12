@@ -2,6 +2,7 @@
 
 use App\Enums\DeliveryResult;
 use App\Enums\ListingKind;
+use App\Enums\PaidAsAgreed;
 use App\Enums\PaymentTerm;
 use App\Enums\RejectedRange;
 use App\Models\Company;
@@ -175,7 +176,14 @@ test('el vendedor califica pero no toca el trato', function () {
         ->post(route('ratings.store', $deal), sellerRatingPayload())
         ->assertRedirect();
 
-    expect(Rating::sole()->from_company_id)->toBe($seller->company_id)
+    $rating = Rating::sole();
+
+    expect($rating->from_company_id)->toBe($seller->company_id)
+        // Sus respuestas quedan guardadas tal cual las mandó.
+        ->and($rating->paid_as_agreed)->toBe(PaidAsAgreed::Yes)
+        ->and($rating->honored_agreement)->toBeTrue()
+        // Y las del otro lado, nulas: no son suyas.
+        ->and($rating->on_time)->toBeNull()
         // El vendedor no decide si se entregó: eso lo dice quien recibe.
         ->and($deal->refresh()->delivered)->toBeNull()
         ->and($deal->rejected_pct)->toBeNull();

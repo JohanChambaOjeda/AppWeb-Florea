@@ -6,12 +6,30 @@ use App\Enums\CutPoint;
 use App\Enums\Destination;
 use App\Enums\ListingKind;
 use App\Enums\Unit;
+use App\Models\Listing;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreListingRequest extends FormRequest
 {
+    /**
+     * La Policy va ANTES que las reglas, igual que en SaveOfferRequest y
+     * StoreRatingRequest.
+     *
+     * Quien intenta publicar lo que no le toca recibe un 403, no un error de
+     * validación: el formulario nunca manda el tipo equivocado, así que si
+     * llega es alguien armando la petición a mano y no hay nada que
+     * explicarle. Con un kind inválido o ausente pasa de largo y lo cazan
+     * las reglas de abajo.
+     */
+    public function authorize(): bool
+    {
+        $kind = ListingKind::tryFrom((string) $this->input('kind'));
+
+        return $this->user()?->can('create', [Listing::class, $kind]) ?? false;
+    }
+
     /**
      * @return array<string, mixed>
      */
