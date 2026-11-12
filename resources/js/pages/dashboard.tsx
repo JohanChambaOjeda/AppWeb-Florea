@@ -20,7 +20,10 @@ import type { HomeTab, ListingCard as Card, Paginated, Variety } from '@/types';
 
 type Props = {
     tab: HomeTab;
-    tabs: Record<HomeTab, number>;
+    /** Regla 8: solo llegan las pestañas que le tocan a este tipo. */
+    tabs: Partial<Record<HomeTab, number>>;
+    /** Lo único que esta empresa puede publicar. */
+    publishes: 'want' | 'have';
     listings: Paginated<Card>;
     filters: {
         all: boolean;
@@ -38,9 +41,29 @@ const TABS: { value: HomeTab; label: string; short: string }[] = [
     { value: 'mine', label: 'Mis publicaciones', short: 'Mías' },
 ];
 
+/**
+ * El botón de publicar: uno solo, el que le toca a la empresa (regla 8).
+ * Antes había dos y el usuario elegía; ahora lo decide su tipo.
+ */
+const PUBLISH = {
+    want: {
+        icon: PackageSearch,
+        title: 'Busco flor',
+        hint: 'Me falta para completar',
+        tone: 'violet',
+    },
+    have: {
+        icon: Sprout,
+        title: 'Tengo disponible',
+        hint: 'Me sobra flor',
+        tone: 'sky',
+    },
+} as const;
+
 export default function Dashboard({
     tab,
     tabs,
+    publishes,
     listings: page,
     filters,
     canFilterAll,
@@ -82,30 +105,15 @@ export default function Dashboard({
                 <InstallBanner />
                 <PushCard />
 
-                {/* Publicar */}
-                <div className="grid grid-cols-2 gap-3">
-                    <NewListingButton
-                        kind="want"
-                        icon={PackageSearch}
-                        title="Busco flor"
-                        hint="Me falta para completar"
-                        tone="violet"
-                    />
-                    <NewListingButton
-                        kind="have"
-                        icon={Sprout}
-                        title="Tengo disponible"
-                        hint="Me sobra flor"
-                        tone="sky"
-                    />
-                </div>
+                {/* Publicar: un solo botón, a todo el ancho */}
+                <NewListingButton {...PUBLISH[publishes]} />
 
-                {/* Pestañas */}
+                {/* Pestañas: solo las que mandó el servidor para este tipo */}
                 <div
                     role="tablist"
                     className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
                 >
-                    {TABS.map((item) => {
+                    {TABS.filter((item) => item.value in tabs).map((item) => {
                         const active = item.value === tab;
                         const count = tabs[item.value] ?? 0;
 
@@ -219,7 +227,11 @@ export default function Dashboard({
 
                 {/* Lista */}
                 {page.data.length === 0 ? (
-                    <EmptyState tab={tab} filters={filters} />
+                    <EmptyState
+                        tab={tab}
+                        filters={filters}
+                        publishes={publishes}
+                    />
                 ) : (
                     <InfiniteScroll
                         data="listings"
@@ -257,25 +269,29 @@ export default function Dashboard({
 function EmptyState({
     tab,
     filters,
+    publishes,
 }: {
     tab: HomeTab;
     filters: Props['filters'];
+    publishes: Props['publishes'];
 }) {
     const filtering = filters.variety_id !== null || filters.length !== null;
 
     const message = (() => {
         if (tab === 'mine') {
-            return 'Todavía no has publicado nada. Usa los botones de arriba.';
+            return publishes === 'have'
+                ? 'Todavía no has publicado flor. Usa el botón de arriba cuando te sobre.'
+                : 'Todavía no has publicado ningún pedido. Usa el botón de arriba cuando te falte flor.';
         }
 
         if (tab === 'available') {
             return filtering
-                ? 'Nadie tiene esa flor disponible ahora. Prueba quitando el filtro.'
-                : 'Por ahora nadie publicó flor disponible.';
+                ? 'Ningún productor tiene esa flor ahora. Prueba quitando el filtro.'
+                : 'Por ahora ningún productor publicó flor disponible. Te avisamos cuando pase.';
         }
 
         return filters.all
-            ? 'Ahora mismo no hay pedidos abiertos.'
+            ? 'Ahora mismo ninguna poscosecha está buscando flor.'
             : 'No hay pedidos de tus variedades ahora. Enciende “Ver todos” para ver el resto.';
     })();
 
@@ -287,14 +303,16 @@ function EmptyState({
     );
 }
 
+/**
+ * Ya no lleva ?kind=: lo decide la empresa. Si alguien lo pone a mano, el
+ * servidor lo devuelve aquí con una explicación.
+ */
 function NewListingButton({
-    kind,
     icon: Icon,
     title,
     hint,
     tone,
 }: {
-    kind: 'want' | 'have';
     icon: typeof PackageSearch;
     title: string;
     hint: string;
@@ -302,20 +320,18 @@ function NewListingButton({
 }) {
     return (
         <Link
-            href={listings.create({ query: { kind } })}
+            href={listings.create()}
             className={cn(
-                'flex min-h-24 flex-col justify-between rounded-xl p-4 text-white transition-opacity hover:opacity-90',
+                'flex min-h-20 items-center gap-4 rounded-xl p-4 text-white transition-opacity hover:opacity-90',
                 tone === 'violet' ? 'bg-violet-600' : 'bg-sky-500',
             )}
         >
-            <div className="flex items-center justify-between">
-                <Icon className="size-6" />
-                <Plus className="size-5 opacity-70" />
-            </div>
+            <Icon className="size-8 shrink-0" />
             <span className="flex flex-col">
-                <span className="text-base font-semibold">{title}</span>
-                <span className="text-xs text-white/80">{hint}</span>
+                <span className="text-lg font-semibold">{title}</span>
+                <span className="text-sm text-white/80">{hint}</span>
             </span>
+            <Plus className="ml-auto size-6 shrink-0 opacity-70" />
         </Link>
     );
 }

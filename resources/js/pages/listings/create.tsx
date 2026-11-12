@@ -89,7 +89,8 @@ export default function CreateListing({
 }: Props) {
     const { errors } = usePage().props as { errors: Record<string, string> };
 
-    const [kind, setKind] = useState<ListingKind>(initialKind);
+    // Regla 8: el tipo lo decide la empresa; aqui ya no se elige.
+    const kind = initialKind;
     const [items, setItems] = useState<ListingItemDraft[]>(() =>
         prefill?.items.length
             ? prefill.items.map((item) => ({
@@ -174,32 +175,26 @@ export default function CreateListing({
             <Head title="Nueva publicación" />
 
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-4 pb-0">
+                {/*
+                    Regla 8: el tipo ya no se elige, lo decide la empresa.
+                    Donde había dos botones ahora solo se enuncia qué se está
+                    publicando, para que nadie se quede dudando.
+                */}
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-xl font-semibold">Nueva publicación</h1>
+                    <h1 className="text-xl font-semibold">
+                        {isWant ? 'Nuevo pedido' : 'Nueva publicación'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        {isWant
+                            ? 'Dinos qué flor te falta para completar.'
+                            : 'Dinos qué flor tienes disponible hoy.'}
+                    </p>
                     {duplicatedFrom !== null && (
                         <p className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Copy className="size-4" />
                             Copiada de una publicación tuya. Revisa la fecha.
                         </p>
                     )}
-                </div>
-
-                {/* Tipo */}
-                <div className="grid grid-cols-2 gap-2">
-                    <KindButton
-                        active={isWant}
-                        onClick={() => setKind('want')}
-                        title="Busco flor"
-                        hint="Me falta para completar"
-                        tone="violet"
-                    />
-                    <KindButton
-                        active={!isWant}
-                        onClick={() => setKind('have')}
-                        title="Tengo disponible"
-                        hint="Me sobra flor"
-                        tone="sky"
-                    />
                 </div>
 
                 {/* Líneas */}
@@ -365,48 +360,6 @@ export default function CreateListing({
                 </div>
             </div>
         </>
-    );
-}
-
-function KindButton({
-    active,
-    onClick,
-    title,
-    hint,
-    tone,
-}: {
-    active: boolean;
-    onClick: () => void;
-    title: string;
-    hint: string;
-    tone: 'violet' | 'sky';
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            aria-pressed={active}
-            className={cn(
-                'flex min-h-20 flex-col items-start justify-center gap-0.5 rounded-xl border-2 px-4 py-3 text-left transition-colors',
-                !active && 'border-input bg-background',
-                active &&
-                    tone === 'violet' &&
-                    'border-violet-600 bg-violet-600 text-white',
-                active &&
-                    tone === 'sky' &&
-                    'border-sky-500 bg-sky-500 text-white',
-            )}
-        >
-            <span className="text-base font-semibold">{title}</span>
-            <span
-                className={cn(
-                    'text-sm',
-                    active ? 'text-white/80' : 'text-muted-foreground',
-                )}
-            >
-                {hint}
-            </span>
-        </button>
     );
 }
 

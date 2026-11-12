@@ -54,13 +54,17 @@ test('el formulario se abre siempre en el tipo que le toca', function () {
     // Aunque pida el otro por URL, lo devuelve al inicio con una explicación.
     $this->actingAs($this->grower)
         ->get(route('listings.create', ['kind' => 'want']))
-        ->assertRedirect(route('dashboard'))
-        ->assertSessionHas('info', 'Como productor, aquí publicas la flor que tienes disponible.');
+        ->assertRedirect(route('dashboard'));
+
+    expect(session('inertia.flash_data.toast.message'))
+        ->toBe('Como productor, aquí publicas la flor que tienes disponible.');
 
     $this->actingAs($this->postharvest)
         ->get(route('listings.create', ['kind' => 'have']))
-        ->assertRedirect(route('dashboard'))
-        ->assertSessionHas('info', 'Como poscosecha, aquí publicas la flor que te falta.');
+        ->assertRedirect(route('dashboard'));
+
+    expect(session('inertia.flash_data.toast.message'))
+        ->toBe('Como poscosecha, aquí publicas la flor que te falta.');
 
     // Y sin pedir nada, entra sin problema.
     $this->actingAs($this->grower)
@@ -75,6 +79,29 @@ test('no se puede duplicar una publicación que ya no le corresponde', function 
     $this->actingAs($this->grower)
         ->get(route('listings.create', ['from' => $stale->id]))
         ->assertForbidden();
+});
+
+test('el inicio manda un solo botón y dos pestañas, según el tipo', function () {
+    $this->actingAs($this->grower)
+        ->get(route('dashboard'))
+        ->assertInertia(function ($page) {
+            $props = props($page);
+
+            expect($props['publishes'])->toBe('have')
+                ->and(array_keys($props['tabs']))->toBe(['for-me', 'mine'])
+                // El interruptor "Ver todos" es solo del productor.
+                ->and($props['canFilterAll'])->toBeTrue();
+        });
+
+    $this->actingAs($this->postharvest)
+        ->get(route('dashboard'))
+        ->assertInertia(function ($page) {
+            $props = props($page);
+
+            expect($props['publishes'])->toBe('want')
+                ->and(array_keys($props['tabs']))->toBe(['available', 'mine'])
+                ->and($props['canFilterAll'])->toBeFalse();
+        });
 });
 
 // ── Ofertar ─────────────────────────────────────────────────────────────

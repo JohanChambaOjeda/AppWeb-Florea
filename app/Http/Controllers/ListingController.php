@@ -44,8 +44,12 @@ class ListingController extends Controller
         $asked = ListingKind::tryFrom((string) $request->query('kind'));
 
         if ($asked !== null && $asked !== $kind) {
-            return to_route('dashboard')
-                ->with('info', $request->user()->company->type->publishHint());
+            Inertia::flash('toast', [
+                'type' => 'info',
+                'message' => $request->user()->company->type->publishHint(),
+            ]);
+
+            return to_route('dashboard');
         }
 
         return Inertia::render('listings/create', [

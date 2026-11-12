@@ -1,6 +1,6 @@
 # Florea — contexto del proyecto
 
-Florea es una app web de Grizzi Technology (Tabacundo, Ecuador). Conecta poscosechas y pequeños productores de rosas del cantón Pedro Moncayo para que una poscosecha encuentre en horas, no en días, la flor que le falta para completar un pedido. También sirve para mover sobrantes: cualquiera puede publicar lo que busca ("Busco") o lo que tiene ("Disponible").
+Florea es una app web de Grizzi Technology (Tabacundo, Ecuador). Conecta poscosechas y pequeños productores de rosas del cantón Pedro Moncayo para que una poscosecha encuentre en horas, no en días, la flor que le falta para completar un pedido. También sirve para mover sobrantes: el productor publica lo que tiene ("Disponible") y la poscosecha lo que busca ("Busco"). Ver la regla 6.
 
 Cliente que paga: la vendedora de la poscosecha (suscripción mensual a partir del 10 de diciembre de 2026). Los productores usan la app gratis.
 
@@ -40,15 +40,15 @@ Cliente que paga: la vendedora de la poscosecha (suscripción mensual a partir d
 5. La verificación es manual desde el panel admin. Más adelante se pedirá foto de la cédula (la columna ya existe).
 6. **El productor vende y la poscosecha compra. Nunca al revés** (regla 8 en el código). Cada tipo tiene un solo papel:
 
-   |  | Productor (`grower`) | Poscosecha (`postharvest`) |
-   | --- | --- | --- |
-   | Publica | Solo "Tengo disponible" (`have`) | Solo "Busco flor" (`want`) |
-   | Ve en el inicio | Los "Busco" de poscosechas que coinciden con sus variedades (con "Ver todos") + las suyas | Los "Disponible" de productores + las suyas |
-   | Oferta en | Los "Busco" de poscosechas: **vende** | Los "Disponible" de productores: **compra** |
+    |                 | Productor (`grower`)                                                                      | Poscosecha (`postharvest`)                  |
+    | --------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
+    | Publica         | Solo "Tengo disponible" (`have`)                                                          | Solo "Busco flor" (`want`)                  |
+    | Ve en el inicio | Los "Busco" de poscosechas que coinciden con sus variedades (con "Ver todos") + las suyas | Los "Disponible" de productores + las suyas |
+    | Oferta en       | Los "Busco" de poscosechas: **vende**                                                     | Los "Disponible" de productores: **compra** |
 
-   La regla está escrita una sola vez, en `CompanyType::publishes()` y `ListingKind::publishedBy()`. Todo lo demás —Policies, consultas del inicio, avisos— lee de ahí.
+    La regla está escrita una sola vez, en `CompanyType::publishes()` y `ListingKind::publishedBy()`. Todo lo demás —Policies, consultas del inicio, avisos— lee de ahí.
 
-   Quedan publicaciones de antes de esta regla (un "Busco" de un productor, por ejemplo). Las consultas ya no las muestran y nadie puede ofertar en ellas; `php artisan florea:fix-roles` las lista y, con `--apply`, las cierra y rechaza sus ofertas pendientes.
+    Quedan publicaciones de antes de esta regla (un "Busco" de un productor, por ejemplo). Las consultas ya no las muestran y nadie puede ofertar en ellas; `php artisan florea:fix-roles` las lista y, con `--apply`, las cierra y rechaza sus ofertas pendientes.
 
 ## Forma de trabajo
 

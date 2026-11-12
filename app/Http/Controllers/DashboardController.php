@@ -51,6 +51,9 @@ class DashboardController extends Controller
         return Inertia::render('dashboard', [
             'tab' => $tab->value,
             'tabs' => $this->tabCounts($company, $showAll),
+            // Regla 8: lo único que esta empresa puede publicar. La pantalla
+            // pinta un solo botón, no dos.
+            'publishes' => $company->type->publishes()->value,
             'listings' => Inertia::scroll(fn () => $this->paginate($tab, $company, $showAll, $varietyId, $length)),
             'filters' => [
                 'all' => $showAll,

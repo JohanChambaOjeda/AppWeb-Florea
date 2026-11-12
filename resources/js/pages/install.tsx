@@ -174,7 +174,7 @@ function IphoneSteps() {
             <p className="flex items-start gap-2 text-sm text-muted-foreground">
                 <SquarePlus className="mt-0.5 size-4 shrink-0" />
                 En iPhone los avisos solo funcionan con la app instalada, así
-                que este paso es necesario para enterarte de los pedidos.
+                que este paso es necesario para enterarte a tiempo.
             </p>
         </section>
     );
