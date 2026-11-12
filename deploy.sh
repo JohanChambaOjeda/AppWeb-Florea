@@ -55,7 +55,21 @@ echo "==> Modo mantenimiento"
 trap '"$PHP" artisan up || true' EXIT
 
 echo "==> Código"
+# Si el pull trae una versión nueva de ESTE script, hay que volver a
+# empezar con ella. Bash ya leyó el archivo viejo en memoria, así que sin
+# esto se despliega con la lógica anterior y los arreglos del script no se
+# aplican hasta el despliegue siguiente. Pasó de verdad: el script viejo
+# llamaba a composer con el PHP del sistema (8.2) y el despliegue murió ahí
+# aun habiendo subido ya el arreglo.
+ANTES=$(git rev-parse HEAD:deploy.sh 2>/dev/null || echo nuevo)
 git pull --ff-only origin main
+DESPUES=$(git rev-parse HEAD:deploy.sh 2>/dev/null || echo nuevo)
+
+if [ "$ANTES" != "$DESPUES" ] && [ -z "${FLOREA_REEJECUTADO:-}" ]; then
+    echo "==> deploy.sh cambió: reiniciando con la versión nueva"
+    export FLOREA_REEJECUTADO=1
+    exec "$0" "$@"
+fi
 
 echo "==> Dependencias de PHP"
 # Con "$PHP" por delante: si no, composer usa el php del PATH (8.2 aquí) y
