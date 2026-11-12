@@ -26,6 +26,7 @@ final class Reputation
                 'ratings' => $company->ratings_count,
                 'deals' => $company->deals_count,
                 'onTimePct' => null,
+                'paidPct' => null,
             ];
         }
 
@@ -34,8 +35,10 @@ final class Reputation
             'stars' => $company->ratings_avg !== null ? (float) $company->ratings_avg : null,
             'ratings' => $company->ratings_count,
             'deals' => $company->deals_count,
-            // El % a tiempo solo tiene sentido para quien entrega.
+            // Cada tipo se mide por lo suyo: al productor por entregar a
+            // tiempo, a la poscosecha por pagar como acordó.
             'onTimePct' => $company->isGrower() ? $company->on_time_pct : null,
+            'paidPct' => $company->isPostharvest() ? $company->paid_pct : null,
         ];
     }
 }

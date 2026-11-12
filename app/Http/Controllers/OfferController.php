@@ -72,6 +72,9 @@ class OfferController extends Controller
                 'user_id' => $user->id,
                 'price_per_stem' => $data['price_per_stem'] ?? null,
                 'delivery' => $data['delivery'],
+                // Solo viene cuando quien oferta compra. Si oferta para
+                // vender, el plazo lo pone la poscosecha al aceptar.
+                'payment_term' => $data['payment_term'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'status' => OfferStatus::Sent,
             ])->save();

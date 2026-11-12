@@ -110,8 +110,8 @@ test('recorrido completo: publicar, ofertar, aceptar dos y cerrar', function () 
     $ofertaSanIsidro = $listing->offers()->where('company_id', $sanIsidro->company_id)->sole();
     $ofertaElRosal = $listing->offers()->where('company_id', $elRosal->company_id)->sole();
 
-    $this->actingAs($vendedora)->post(route('offers.accept', $ofertaSanIsidro))->assertRedirect();
-    $this->actingAs($vendedora)->post(route('offers.accept', $ofertaElRosal))->assertRedirect();
+    $this->actingAs($vendedora)->post(route('offers.accept', $ofertaSanIsidro), ['payment_term' => 'days_15'])->assertRedirect();
+    $this->actingAs($vendedora)->post(route('offers.accept', $ofertaElRosal), ['payment_term' => 'days_15'])->assertRedirect();
 
     expect(Deal::count())->toBe(2)
         // La publicación sigue abierta: aceptar no la cierra.

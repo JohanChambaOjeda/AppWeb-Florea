@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $buyer_company_id
  * @property int $seller_company_id
  * @property Carbon $closed_at
+ * @property PaymentTerm|null $payment_term
  * @property DeliveryResult|null $delivered
  * @property string|null $rejected_pct
  * @property Carbon $created_at

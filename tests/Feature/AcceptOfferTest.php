@@ -42,7 +42,7 @@ test('aceptar crea el trato con comprador y vendedor según el tipo', function (
     $offer = offerOn($listing);
 
     $this->actingAs($this->publisher)
-        ->post(route('offers.accept', $offer))
+        ->post(route('offers.accept', $offer), ['payment_term' => 'days_15'])
         ->assertRedirect();
 
     $deal = Deal::sole();
@@ -60,7 +60,7 @@ test('en un "Disponible" los papeles se invierten', function () {
     $listing = haveWithTwoLines($this->publisher);
     $offer = offerOn($listing);
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     $deal = Deal::sole();
 
@@ -74,8 +74,8 @@ test('se pueden aceptar dos ofertas distintas en la misma publicación', functio
     $a = offerOn($listing);
     $b = offerOn($listing);
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $a))->assertRedirect();
-    $this->actingAs($this->publisher)->post(route('offers.accept', $b))->assertRedirect();
+    $this->actingAs($this->publisher)->post(route('offers.accept', $a), ['payment_term' => 'days_15'])->assertRedirect();
+    $this->actingAs($this->publisher)->post(route('offers.accept', $b), ['payment_term' => 'days_15'])->assertRedirect();
 
     expect($a->refresh()->status)->toBe(OfferStatus::Accepted)
         ->and($b->refresh()->status)->toBe(OfferStatus::Accepted)
@@ -101,8 +101,8 @@ test('solo quien publicó puede aceptar o rechazar', function () {
     $offer = offerOn($listing);
     $intruso = postharvestUser();
 
-    $this->actingAs($intruso)->post(route('offers.accept', $offer))->assertForbidden();
-    $this->actingAs($offer->user)->post(route('offers.accept', $offer))->assertForbidden();
+    $this->actingAs($intruso)->post(route('offers.accept', $offer), ['payment_term' => 'days_15'])->assertForbidden();
+    $this->actingAs($offer->user)->post(route('offers.accept', $offer), ['payment_term' => 'days_15'])->assertForbidden();
 
     expect($offer->refresh()->status)->toBe(OfferStatus::Sent);
 });
@@ -111,8 +111,8 @@ test('una oferta ya respondida no se vuelve a responder', function () {
     $listing = wantWithTwoLines($this->publisher);
     $offer = offerOn($listing);
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer))->assertForbidden();
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15'])->assertForbidden();
 
     expect(Deal::count())->toBe(1);
 });
@@ -122,7 +122,7 @@ test('"Ya completé" cierra la publicación y rechaza las ofertas pendientes', f
     $aceptada = offerOn($listing);
     $pendiente = offerOn($listing);
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $aceptada));
+    $this->actingAs($this->publisher)->post(route('offers.accept', $aceptada), ['payment_term' => 'days_15']);
     $this->actingAs($this->publisher)->post(route('listings.close', $listing))->assertRedirect();
 
     expect($listing->refresh()->status)->toBe(ListingStatus::Closed)
@@ -164,7 +164,7 @@ test('el celular aparece solo después del trato, a las dos partes', function ()
             ->not->toContain(substr($publisherPhone, -9)));
 
     // Se acepta: nace el trato.
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     // DESPUÉS: quien publicó ve el celular de quien ofertó.
     $this->actingAs($this->publisher)
@@ -192,7 +192,7 @@ test('un tercero no ve el celular aunque el trato exista', function () {
     $offer = offerOn($listing);
     $sellerPhone = $offer->user->phone;
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     // Otro productor mira la publicación: no es parte del trato.
     $tercero = growerUser(Variety::factory()->create());
@@ -210,7 +210,7 @@ test('el mensaje de WhatsApp lleva nombre, empresa y lo acordado', function () {
     $listing = wantWithTwoLines($this->publisher);
     $offer = offerOn($listing);
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     $this->actingAs($this->publisher)
         ->get(route('listings.show', $listing))
@@ -232,7 +232,7 @@ test('quien ofertó recibe el mensaje en la otra dirección', function () {
     $listing = wantWithTwoLines($this->publisher);
     $offer = offerOn($listing);
 
-    $this->actingAs($this->publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($this->publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     $this->actingAs($offer->user)
         ->get(route('my-offers.index'))

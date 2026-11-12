@@ -2,6 +2,7 @@
 
 use App\Enums\DeliveryResult;
 use App\Enums\ListingKind;
+use App\Enums\PaymentTerm;
 use App\Enums\RejectedRange;
 use App\Models\Company;
 use App\Models\Deal;
@@ -38,13 +39,24 @@ function closedDeal(int $daysAgo = 0): array
     return [$deal, $buyer, $seller];
 }
 
-/** Payload válido de calificación. */
+/** Lo que manda quien compra: la poscosecha, que recibió la flor. */
 function ratingPayload(array $override = []): array
 {
     return [
         'delivered' => 'yes',
         'on_time' => true,
         'rejected_range' => 'none',
+        'score' => 5,
+        ...$override,
+    ];
+}
+
+/** Lo que manda quien vende: el productor, que cobró. */
+function sellerRatingPayload(array $override = []): array
+{
+    return [
+        'paid_as_agreed' => 'yes',
+        'honored_agreement' => true,
         'score' => 5,
         ...$override,
     ];
@@ -64,7 +76,7 @@ function acceptedDeal(): array
     $listing = listingFrom($buyer, ListingKind::Want, [$variety], [70]);
     $offer = offerOn($listing, $seller);
 
-    test()->actingAs($buyer)->post(route('offers.accept', $offer));
+    test()->actingAs($buyer)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     return [Deal::sole(), $buyer, $seller];
 }
@@ -160,11 +172,7 @@ test('el vendedor califica pero no toca el trato', function () {
     [$deal, , $seller] = closedDeal();
 
     $this->actingAs($seller)
-        ->post(route('ratings.store', $deal), [
-            'delivered' => 'yes',
-            'on_time' => true,
-            'score' => 5,
-        ])
+        ->post(route('ratings.store', $deal), sellerRatingPayload())
         ->assertRedirect();
 
     expect(Rating::sole()->from_company_id)->toBe($seller->company_id)
@@ -372,8 +380,126 @@ test('aceptar una oferta cuenta el trato para las dos empresas', function () {
     $listing = listingFrom($publisher, ListingKind::Want, [$variety]);
     $offer = offerOn($listing);
 
-    $this->actingAs($publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     expect($publisher->company->refresh()->deals_count)->toBe(1)
         ->and(Company::find($offer->company_id)->deals_count)->toBe(1);
+});
+
+/**
+ * El plazo de pago se acuerda dentro de la app, no por WhatsApp. Lo declara
+ * siempre la poscosecha, que es quien paga, y el productor lo ve ANTES de
+ * que el trato quede cerrado.
+ */
+test('la poscosecha elige el plazo al aceptar un "Busco" suyo', function () {
+    $variety = Variety::factory()->create();
+    $buyer = postharvestUser();
+    $seller = growerUser($variety);
+
+    $listing = listingFrom($buyer, ListingKind::Want, [$variety]);
+    $offer = offerOn($listing, $seller);
+
+    $this->actingAs($buyer)
+        ->post(route('offers.accept', $offer), ['payment_term' => 'days_30'])
+        ->assertSessionHasNoErrors();
+
+    expect(Deal::sole()->payment_term)->toBe(PaymentTerm::Days30);
+});
+
+test('aceptar sin decir el plazo no cierra el trato', function () {
+    $variety = Variety::factory()->create();
+    $buyer = postharvestUser();
+
+    $listing = listingFrom($buyer, ListingKind::Want, [$variety]);
+    $offer = offerOn($listing, growerUser($variety));
+
+    $this->actingAs($buyer)
+        ->post(route('offers.accept', $offer))
+        ->assertSessionHasErrors('payment_term');
+
+    expect(Deal::count())->toBe(0);
+});
+
+test('en un "Disponible" el plazo viene de la oferta y pasa al trato', function () {
+    $variety = Variety::factory()->create();
+    $seller = growerUser($variety);
+    $buyer = postharvestUser();
+
+    $listing = listingFrom($seller, ListingKind::Have, [$variety]);
+
+    // La poscosecha compra, así que deja dicho el plazo en su oferta.
+    $this->actingAs($buyer)->post(route('offers.save', $listing), [
+        'items' => [[
+            'listing_item_id' => $listing->items->first()->id,
+            'quantity' => 2, 'unit' => 'hb', 'length' => 60,
+        ]],
+        'delivery' => 'pickup',
+        'payment_term' => 'days_8',
+    ])->assertSessionHasNoErrors();
+
+    // El productor acepta sin tener que decir nada: ya lo sabía.
+    $this->actingAs($seller)
+        ->post(route('offers.accept', $listing->offers()->sole()))
+        ->assertSessionHasNoErrors();
+
+    expect(Deal::sole()->payment_term)->toBe(PaymentTerm::Days8);
+});
+
+test('cada uno contesta lo suyo y lo del otro se rechaza', function () {
+    [$deal, $buyer, $seller] = closedDeal();
+
+    // La poscosecha no reporta el pago: lo reporta quien cobra.
+    $this->actingAs($buyer)
+        ->post(route('ratings.store', $deal), ratingPayload(['paid_as_agreed' => 'yes']))
+        ->assertSessionHasErrors('paid_as_agreed');
+
+    // Y el productor no reporta la entrega.
+    $this->actingAs($seller)
+        ->post(route('ratings.store', $deal), sellerRatingPayload(['delivered' => 'yes']))
+        ->assertSessionHasErrors('delivered');
+});
+
+test('el productor califica el pago y mueve el % de la poscosecha', function () {
+    $variety = Variety::factory()->create();
+    $buyer = postharvestUser();
+
+    // Tres tratos: dos pagados como se acordó y uno no.
+    foreach (['yes', 'yes', 'no'] as $answer) {
+        $seller = growerUser($variety);
+        $listing = listingFrom($buyer, ListingKind::Want, [$variety]);
+        $offer = offerOn($listing, $seller);
+
+        $this->actingAs($buyer)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
+
+        $this->actingAs($seller)->post(
+            route('ratings.store', Deal::where('offer_id', $offer->id)->sole()),
+            sellerRatingPayload(['paid_as_agreed' => $answer, 'score' => 4]),
+        )->assertSessionHasNoErrors();
+    }
+
+    $reputation = Reputation::of($buyer->company->fresh());
+
+    expect($reputation['paidPct'])->toBe(67)
+        ->and($reputation['onTimePct'])->toBeNull();
+});
+
+test('"todavía no" no cuenta ni a favor ni en contra', function () {
+    $variety = Variety::factory()->create();
+    $buyer = postharvestUser();
+
+    // Un "sí" y dos "todavía no": el porcentaje es 100, no 33.
+    foreach (['yes', 'not_yet', 'not_yet'] as $answer) {
+        $seller = growerUser($variety);
+        $listing = listingFrom($buyer, ListingKind::Want, [$variety]);
+        $offer = offerOn($listing, $seller);
+
+        $this->actingAs($buyer)->post(route('offers.accept', $offer), ['payment_term' => 'days_30']);
+
+        $this->actingAs($seller)->post(
+            route('ratings.store', Deal::where('offer_id', $offer->id)->sole()),
+            sellerRatingPayload(['paid_as_agreed' => $answer]),
+        );
+    }
+
+    expect($buyer->company->fresh()->paid_pct)->toBe(100);
 });

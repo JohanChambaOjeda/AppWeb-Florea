@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property string|null $price_per_stem
  * @property Delivery $delivery
+ * @property PaymentTerm|null $payment_term
  * @property string|null $notes
  * @property OfferStatus $status
  * @property Carbon $created_at

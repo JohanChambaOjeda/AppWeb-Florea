@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DeliveryResult;
+use App\Enums\PaidAsAgreed;
 use App\Enums\RejectedRange;
 use App\Http\Requests\StoreRatingRequest;
 use App\Models\Deal;
@@ -35,15 +36,22 @@ class RatingController extends Controller
                 'closedAt' => $deal->closed_at->toIso8601String(),
                 'what' => OfferPresenter::summary($deal->offer),
                 'pricePerStem' => $deal->offer->price_per_stem,
+                // El plazo acordado: el productor lo necesita delante para
+                // responder si le pagaron como quedaron.
+                'paymentTerm' => $deal->payment_term?->label(),
+                'paymentDue' => $deal->payment_term
+                    ?->dueAfter($deal->closed_at)->toIso8601String(),
             ],
             'other' => [
                 'name' => $other->name,
                 'typeLabel' => $other->type->label(),
             ],
-            // Solo quien compra reporta cuánto se rechazó.
+            // Decide qué preguntas se ven: quien compra reporta la entrega,
+            // quien vende reporta el pago.
             'isBuyer' => $isBuyer,
             'deliveryResults' => DeliveryResult::options(),
             'rejectedRanges' => RejectedRange::options(),
+            'paidOptions' => PaidAsAgreed::options(),
             'commentMax' => (int) config('florea.notes_max'),
         ]);
     }
@@ -62,7 +70,10 @@ class RatingController extends Controller
                 'from_company_id' => $company->id,
                 'to_company_id' => $other->id,
                 'score' => $data['score'],
-                'on_time' => $data['on_time'],
+                // Cada dirección contesta lo suyo; lo del otro queda nulo.
+                'on_time' => $data['on_time'] ?? null,
+                'paid_as_agreed' => $data['paid_as_agreed'] ?? null,
+                'honored_agreement' => $data['honored_agreement'] ?? null,
                 'comment' => $data['comment'] ?? null,
             ]);
 

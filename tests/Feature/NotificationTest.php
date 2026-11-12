@@ -241,7 +241,7 @@ test('ninguna notificación guarda un celular', function () {
     ]);
 
     $publisher->notify(new OfferReceived($offer));
-    $this->actingAs($publisher)->post(route('offers.accept', $offer));
+    $this->actingAs($publisher)->post(route('offers.accept', $offer), ['payment_term' => 'days_15']);
 
     $phones = [$publisher->phone, $seller->phone];
     $stored = DB::table('notifications')->pluck('data')->implode(' ');

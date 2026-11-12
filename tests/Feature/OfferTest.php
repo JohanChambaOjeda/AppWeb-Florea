@@ -2,6 +2,7 @@
 
 use App\Enums\ListingKind;
 use App\Enums\OfferStatus;
+use App\Enums\PaymentTerm;
 use App\Models\Listing;
 use App\Models\Variety;
 use App\Notifications\OfferReceived;
@@ -115,7 +116,8 @@ test('una oferta de venta sin precio es rechazada', function () {
 test('una oferta de compra en un "Disponible" no exige foto ni precio', function () {
     $listing = listingOf(ListingKind::Have);
 
-    // En un "Disponible" quien oferta es quien compra: la poscosecha.
+    // En un "Disponible" quien oferta es quien compra: la poscosecha. Y
+    // como paga ella, el plazo lo deja dicho aquí mismo.
     $this->actingAs($this->buyer)
         ->post(route('offers.save', $listing), [
             'items' => [[
@@ -125,6 +127,7 @@ test('una oferta de compra en un "Disponible" no exige foto ni precio', function
                 'length' => 50,
             ]],
             'delivery' => 'pickup',
+            'payment_term' => 'days_15',
         ])
         ->assertRedirect();
 
@@ -132,6 +135,7 @@ test('una oferta de compra en un "Disponible" no exige foto ni precio', function
 
     expect($offer->status)->toBe(OfferStatus::Sent)
         ->and($offer->price_per_stem)->toBeNull()
+        ->and($offer->payment_term)->toBe(PaymentTerm::Days15)
         ->and($offer->photos)->toHaveCount(0);
 });
 

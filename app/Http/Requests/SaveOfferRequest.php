@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Delivery;
+use App\Enums\PaymentTerm;
 use App\Enums\Unit;
 use App\Models\Listing;
 use Illuminate\Contracts\Validation\Validator;
@@ -68,6 +69,14 @@ class SaveOfferRequest extends FormRequest
             ],
 
             'delivery' => ['required', Rule::enum(Delivery::class)],
+
+            // El plazo de pago lo pone quien paga. Aquí solo cuando quien
+            // oferta compra (la poscosecha en un "Disponible"); si oferta
+            // para vender, lo elegirá la poscosecha al aceptar.
+            'payment_term' => [
+                $this->offererSells() ? 'prohibited' : 'required',
+                Rule::enum(PaymentTerm::class),
+            ],
             'notes' => ['nullable', 'string', 'max:'.config('florea.notes_max')],
 
             // Fotos: las que ya estaban y se conservan, más las nuevas.
@@ -95,6 +104,8 @@ class SaveOfferRequest extends FormRequest
             'price_per_stem.decimal' => 'El precio lleva máximo 2 decimales. Por ejemplo 0.45.',
             'price_per_stem.min' => 'El precio debe ser mayor que cero.',
             'delivery.required' => 'Elige cómo se entrega.',
+            'payment_term.required' => 'Di en cuánto tiempo vas a pagar.',
+            'payment_term.prohibited' => 'El plazo de pago lo pone quien compra.',
             'photos.prohibited' => 'En un "Disponible" no se manda foto.',
             'photos.*.image' => 'Sube una foto (JPG, PNG o WEBP).',
             'photos.*.mimes' => 'La foto debe ser JPG, PNG o WEBP.',
