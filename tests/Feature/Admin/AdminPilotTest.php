@@ -7,8 +7,18 @@ use App\Models\Offer;
 use App\Models\User;
 use App\Models\Variety;
 use App\Support\Metrics;
+use Illuminate\Support\Carbon;
 
 beforeEach(function () {
+    // Media mañana de un día cualquiera.
+    //
+    // Sin esto, los tests que cuentan "publicaciones de hoy" fallaban entre
+    // las 00:00 y las 02:00: crean una publicación de hace 120 minutos, que
+    // a esa hora cae en el día anterior. Pasó de verdad, un 12 de noviembre
+    // a las 00:02. Un test que depende de la hora a la que lo corras no
+    // sirve de nada.
+    $this->travelTo(Carbon::parse('2026-10-20 10:00:00'));
+
     $this->admin = User::factory()->admin()->create();
     $this->variety = Variety::factory()->create(['name' => 'Explorer']);
 });

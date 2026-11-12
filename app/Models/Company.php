@@ -47,6 +47,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, User> $users
  * @property-read Collection<int, Variety> $varieties
  * @property-read Collection<int, CompanyVariety> $companyVarieties
+ * @property-read int|null $low_ratings_count agregado por withCount
  */
 #[Fillable([
     'type', 'name', 'tax_id', 'zone_id', 'address_reference', 'id_document_path',
@@ -267,5 +268,16 @@ class Company extends Model
     public function ratingsReceived(): HasMany
     {
         return $this->hasMany(Rating::class, 'to_company_id');
+    }
+
+    /**
+     * Las que esta empresa puso a otras. Solo las lee el admin: sirven para
+     * ver quién califica con cero y quién con cinco a todo el mundo.
+     *
+     * @return HasMany<Rating, $this>
+     */
+    public function ratingsGiven(): HasMany
+    {
+        return $this->hasMany(Rating::class, 'from_company_id');
     }
 }

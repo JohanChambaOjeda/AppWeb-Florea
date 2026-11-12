@@ -33,6 +33,9 @@ class CompanyController extends Controller
 
         $companies = Company::query()
             ->with(['zone:id,name', 'owner:id,company_id,name,phone'])
+            // Cuántas malas ha recibido: una empresa con tres de una
+            // estrella necesita una llamada, no esperar al promedio.
+            ->withCount(['ratingsReceived as low_ratings_count' => fn ($q) => $q->where('score', '<=', RatingController::LOW_SCORE)])
             ->when($status === 'pending', fn ($q) => $q->pendingVerification())
             ->when($status === 'verified', fn ($q) => $q->verified())
             ->when($status === 'rejected', fn ($q) => $q->onlyTrashed())
@@ -63,6 +66,13 @@ class CompanyController extends Controller
                 },
                 'rejectionReason' => $company->rejection_reason,
                 'registeredAt' => $company->created_at->toIso8601String(),
+                // Los números públicos, aquí mismo: así se ve de un vistazo
+                // si una empresa está dando problemas sin cambiar de pantalla.
+                'ratingsCount' => $company->ratings_count,
+                'ratingsAvg' => $company->ratings_avg !== null ? (float) $company->ratings_avg : null,
+                'onTimePct' => $company->isGrower() ? $company->on_time_pct : null,
+                'paidPct' => $company->isPostharvest() ? $company->paid_pct : null,
+                'lowRatings' => (int) $company->low_ratings_count,
             ]);
 
         return Inertia::render('admin/companies/index', [

@@ -34,6 +34,9 @@ class DealController extends Controller
                 'seller' => $deal->sellerCompany->name,
                 'sellerType' => $deal->sellerCompany->type->label(),
                 'closedAt' => $deal->closed_at->toIso8601String(),
+                // Lo que se acordó pagar, y cuándo vencía.
+                'paymentTerm' => $deal->payment_term?->label(),
+                'paymentDue' => $deal->payment_term?->dueAfter($deal->closed_at)->toIso8601String(),
                 'listingId' => $deal->offer->listing_id,
                 'kindLabel' => $deal->offer->listing->kind->label(),
                 // Lo acordado: las líneas de la oferta y el precio por tallo.
@@ -50,7 +53,10 @@ class DealController extends Controller
                     'id' => $rating->id,
                     'from' => $rating->fromCompany->name,
                     'score' => $rating->score,
+                    // Cada dirección contestó lo suyo; lo del otro va nulo.
                     'onTime' => $rating->on_time,
+                    'paidAsAgreed' => $rating->paid_as_agreed?->label(),
+                    'honoredAgreement' => $rating->honored_agreement,
                     'comment' => $rating->comment,
                 ])->all(),
             ]);

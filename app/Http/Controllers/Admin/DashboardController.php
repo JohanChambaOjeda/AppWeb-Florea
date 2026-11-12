@@ -30,6 +30,9 @@ class DashboardController extends Controller
                 'listingsToday' => Listing::whereDate('created_at', today())->count(),
                 'offersToday' => Offer::whereDate('created_at', today())->count(),
                 'dealsThisWeek' => Deal::where('closed_at', '>=', now()->startOfWeek())->count(),
+                // Las de 1 o 2 estrellas de esta semana. Hay que mirarlas
+                // hoy, no al final del mes cuando la relación ya se perdió.
+                'lowRatingsThisWeek' => RatingController::lowThisWeek(),
             ],
             // La métrica del piloto: cuánto tarda en llegar la primera oferta.
             'timeToFirstOffer' => Metrics::timeToFirstOffer(),

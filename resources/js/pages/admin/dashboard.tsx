@@ -6,6 +6,7 @@ import {
     HandCoins,
     Handshake,
     Sprout,
+    Star,
     Timer,
     Warehouse,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ type Props = {
         listingsToday: number;
         offersToday: number;
         dealsThisWeek: number;
+        lowRatingsThisWeek: number;
     };
     timeToFirstOffer: {
         minutes: number | null;
@@ -150,6 +152,29 @@ export default function AdminDashboard({ stats, timeToFirstOffer }: Props) {
                                 className="text-sm font-medium text-primary underline underline-offset-4"
                             >
                                 Ver tratos
+                            </Link>
+                        </StatCard>
+                        {/*
+                            Las malas de la semana. Van aqui arriba a
+                            proposito: una calificacion de 1 estrella que
+                            nadie mira en tres dias es una empresa que ya se
+                            fue de Florea sin decir por que.
+                        */}
+                        <StatCard
+                            icon={Star}
+                            label="Calificaciones bajas"
+                            value={stats.lowRatingsThisWeek}
+                            highlight={stats.lowRatingsThisWeek > 0}
+                        >
+                            <Link
+                                href={admin.ratings.index({
+                                    query: { low: 1 },
+                                })}
+                                className="text-sm font-medium text-primary underline underline-offset-4"
+                            >
+                                {stats.lowRatingsThisWeek > 0
+                                    ? 'Revisar ahora'
+                                    : 'Ver calificaciones'}
                             </Link>
                         </StatCard>
                     </div>

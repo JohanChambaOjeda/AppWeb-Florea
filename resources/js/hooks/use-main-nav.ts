@@ -9,6 +9,7 @@ import {
     MapPin,
     MessageSquareWarning,
     Sprout,
+    Star,
     Target,
 } from 'lucide-react';
 import { dashboard } from '@/routes';
@@ -38,6 +39,11 @@ export function useMainNav(): NavItem[] {
                 icon: ClipboardList,
             },
             { title: 'Tratos', href: admin.deals.index(), icon: Handshake },
+            {
+                title: 'Calificaciones',
+                href: admin.ratings.index(),
+                icon: Star,
+            },
             {
                 title: 'Empresas',
                 href: admin.companies.index(),
