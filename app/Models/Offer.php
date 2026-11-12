@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Delivery;
 use App\Enums\OfferStatus;
+use App\Enums\PaymentTerm;
 use Database\Factories\OfferFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -34,7 +35,8 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Photo> $photos
  */
 #[Fillable([
-    'listing_id', 'company_id', 'user_id', 'price_per_stem', 'delivery', 'notes', 'status',
+    'listing_id', 'company_id', 'user_id', 'price_per_stem', 'delivery', 'payment_term',
+    'notes', 'status',
 ])]
 class Offer extends Model
 {
@@ -46,6 +48,7 @@ class Offer extends Model
         return [
             'price_per_stem' => 'decimal:2',
             'delivery' => Delivery::class,
+            'payment_term' => PaymentTerm::class,
             'status' => OfferStatus::class,
         ];
     }

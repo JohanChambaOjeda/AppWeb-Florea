@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DeliveryResult;
+use App\Enums\PaymentTerm;
 use Database\Factories\DealFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,8 @@ use Illuminate\Support\Carbon;
  * @property-read Company $sellerCompany
  */
 #[Fillable([
-    'offer_id', 'buyer_company_id', 'seller_company_id', 'closed_at', 'delivered', 'rejected_pct',
+    'offer_id', 'buyer_company_id', 'seller_company_id', 'closed_at', 'payment_term',
+    'delivered', 'rejected_pct',
 ])]
 class Deal extends Model
 {
@@ -37,6 +39,7 @@ class Deal extends Model
     {
         return [
             'closed_at' => 'datetime',
+            'payment_term' => PaymentTerm::class,
             'delivered' => DeliveryResult::class,
             'rejected_pct' => 'decimal:2',
         ];

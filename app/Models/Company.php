@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CompanyType;
+use App\Enums\PaidAsAgreed;
 use App\Enums\Plan;
 use App\Enums\UserRole;
 use Database\Factories\CompanyFactory;
@@ -36,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property int $ratings_count
  * @property string|null $ratings_avg
  * @property int|null $on_time_pct
+ * @property int|null $paid_pct
  * @property int $deals_count
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -143,10 +145,25 @@ class Company extends Model
             ? (int) round((clone $withOnTime)->where('on_time', true)->count() / $answered * 100)
             : null;
 
+        // El de pagos es el espejo del anterior, para la poscosecha.
+        // "Todavía no" queda fuera del cálculo: un plazo a 30 días no es un
+        // impago el día 3, y contarlo castigaría a quien respeta lo acordado.
+        $counting = collect(PaidAsAgreed::cases())
+            ->filter(fn (PaidAsAgreed $answer) => $answer->counts())
+            ->map(fn (PaidAsAgreed $answer) => $answer->value)
+            ->all();
+
+        $withPaid = (clone $received)->whereIn('paid_as_agreed', $counting);
+        $paidAnswered = (clone $withPaid)->count();
+        $paid = $paidAnswered > 0
+            ? (int) round((clone $withPaid)->where('paid_as_agreed', PaidAsAgreed::Yes)->count() / $paidAnswered * 100)
+            : null;
+
         $this->forceFill([
             'ratings_count' => $count,
             'ratings_avg' => $average !== null ? round((float) $average, 2) : null,
             'on_time_pct' => $onTime,
+            'paid_pct' => $paid,
             'deals_count' => $this->dealsAsBuyer()->count() + $this->dealsAsSeller()->count(),
         ])->save();
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaidAsAgreed;
 use Database\Factories\RatingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,8 @@ use Illuminate\Support\Carbon;
  * @property int $to_company_id
  * @property int $score
  * @property bool|null $on_time
+ * @property PaidAsAgreed|null $paid_as_agreed
+ * @property bool|null $honored_agreement
  * @property string|null $comment
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -23,7 +26,10 @@ use Illuminate\Support\Carbon;
  * @property-read Company $fromCompany
  * @property-read Company $toCompany
  */
-#[Fillable(['deal_id', 'from_company_id', 'to_company_id', 'score', 'on_time', 'comment'])]
+#[Fillable([
+    'deal_id', 'from_company_id', 'to_company_id', 'score', 'on_time',
+    'paid_as_agreed', 'honored_agreement', 'comment',
+])]
 class Rating extends Model
 {
     /** @use HasFactory<RatingFactory> */
@@ -34,6 +40,8 @@ class Rating extends Model
         return [
             'score' => 'integer',
             'on_time' => 'boolean',
+            'paid_as_agreed' => PaidAsAgreed::class,
+            'honored_agreement' => 'boolean',
         ];
     }
 
